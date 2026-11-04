@@ -368,6 +368,31 @@ describe("every class name the plugin applies", () => {
 });
 
 /**
+ * The middle number of a selector's specificity — its classes, attributes
+ * and pseudo-classes added up.
+ *
+ * Only the middle number, because only the middle number decides the
+ * question the two blocks below ask. The heaviest checkbox rule in the themes
+ * #294 names is Minimal's `li[data-task=">"] > p > input:checked` at (0,2,3),
+ * and a selector with three class-level parts beats it whatever its element
+ * count, since 3 is more than 2.
+ *
+ * Attributes are counted and then removed before the classes are, so that a
+ * `.` inside an attribute's value could never be read as a class. The
+ * pseudo-*element* is removed too: `::after` weighs an element, not a class,
+ * and both of the checkbox section's marks are drawn on one.
+ */
+function classLevelParts(selector: string): number {
+	const attributes = selector.match(/\[[^\]]*\]/g) ?? [];
+	const rest = selector.replace(/\[[^\]]*\]/g, " ").replace(/::[a-zA-Z-]+/g, " ");
+	return (
+		attributes.length +
+		(rest.match(/\.[A-Za-z][\w-]*/g) ?? []).length +
+		(rest.match(/:[a-zA-Z-]+/g) ?? []).length
+	);
+}
+
+/**
  * The five checkbox states, and the seventeen more behind a switch, against
  * the stylesheet that draws them.
  *
@@ -452,31 +477,6 @@ describe("the checkbox states styles.css draws", () => {
 			}
 		}
 		return [...found].sort();
-	}
-
-	/**
-	 * The middle number of a selector's specificity — its classes, attributes
-	 * and pseudo-classes added up.
-	 *
-	 * Only the middle number, because only the middle number decides the
-	 * question this file asks. The heaviest checkbox rule in the themes #294
-	 * names is Minimal's `li[data-task=">"] > p > input:checked` at (0,2,3), and
-	 * a selector with three class-level parts beats it whatever its element
-	 * count, since 3 is more than 2.
-	 *
-	 * Attributes are counted and then removed before the classes are, so that a
-	 * `.` inside an attribute's value could never be read as a class. The
-	 * pseudo-*element* is removed too: `::after` weighs an element, not a class,
-	 * and both of this section's marks are drawn on one.
-	 */
-	function classLevelParts(selector: string): number {
-		const attributes = selector.match(/\[[^\]]*\]/g) ?? [];
-		const rest = selector.replace(/\[[^\]]*\]/g, " ").replace(/::[a-zA-Z-]+/g, " ");
-		return (
-			attributes.length +
-			(rest.match(/\.[A-Za-z][\w-]*/g) ?? []).length +
-			(rest.match(/:[a-zA-Z-]+/g) ?? []).length
-		);
 	}
 
 	const css = readFileSync(resolve(repoRoot, "styles.css"), "utf8");
@@ -612,5 +612,42 @@ describe("the checkbox states styles.css draws", () => {
 	it("wins on specificity rather than on !important", () => {
 		const forced = checkboxRules(css).filter((rule) => rule.body.includes("!important"));
 		expect(forced.map((rule) => rule.selectors[0])).toEqual([]);
+	});
+});
+
+/**
+ * The rule that hides a switched-off feature's ribbon icon, held to the
+ * same bar as the checkbox rules above rather than to `!important`.
+ *
+ * The community directory's review of 0.1.0 warned on its `!important`. The reason the
+ * rule's comment gave for it, that Obsidian's ribbon sets each item's inline
+ * `display` when it redraws, was read back in the test vault on Obsidian 1.15.0
+ * and is not what happens: `show()` and `toggle(true)` clear the inline value
+ * to `""`, and the one stylesheet rule giving a ribbon item a `display` is
+ * app.css's `.clickable-icon { display: flex }`. What the rule does have to
+ * beat is a theme, whose stylesheet Obsidian puts after this one; all three are
+ * read back in `docs/acceptance-shots/issue-1267-ribbon-withdrawn.txt`.
+ *
+ * The bar of three class-level parts is the checkbox rules' bar, measured
+ * against Minimal's checkbox rule. No theme's ribbon rule was measured, so it
+ * is a borrowed bar, not a proven one: a theme that gives a ribbon icon a
+ * `display` with three classes or more would still show a withdrawn icon,
+ * inert, since the registry gates its click.
+ */
+describe("the withdrawn ribbon icon's rule", () => {
+	const css = readFileSync(resolve(repoRoot, "styles.css"), "utf8");
+	const withdrawn = cssRules(css).filter((rule) => rule.selector.includes(".effortless-ribbon-icon-withdrawn"));
+
+	it("exists once, and hides the icon", () => {
+		expect(withdrawn).toHaveLength(1);
+		expect(withdrawn[0].body).toMatch(/display:\s*none/);
+	});
+
+	it("wins on specificity rather than on !important", () => {
+		expect(withdrawn[0].body).not.toContain("!important");
+	});
+
+	it("is heavy enough to beat a theme", () => {
+		expect(classLevelParts(withdrawn[0].selector)).toBeGreaterThanOrEqual(3);
 	});
 });

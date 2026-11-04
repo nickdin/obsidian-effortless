@@ -1,6 +1,6 @@
 {
 	"name": "effortless",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "An Obsidian plugin: a switchable set of features over the day's log and its collections",
 	"main": "main.js",
 	"private": true,

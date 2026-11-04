@@ -26,15 +26,19 @@
  *   needs the step to judge the ordering against.
  * - Deleting the build step. Same: it is the other end of the ordering.
  * - **Changing the number of steps at all.** The parser check below asserts a
- *   fixed length — seven steps, five of which run something — because a length
+ *   fixed length — eight steps, five of which run something — because a length
  *   that moved on its own is a parser that lost or merged a step, and every
  *   other case in this file would then be measuring a fiction. Adding a step to
  *   the release workflow is an ordinary thing to do, so it turns this file red
  *   on purpose: **a deliberate workflow edit updates the two expected counts in
  *   that test, in the same commit.** Nothing else here has to be touched.
  *
- * The workflow is read, never triggered. This machine cannot push a tag, and
- * the run itself is #133's own deferred acceptance step.
+ * The attestation step
+ * has its own guard, the last block in this file, with its own list of what it
+ * catches.
+ *
+ * The workflow is read, never triggered here: a tag is pushed only on the
+ * public copy, `docs/releasing.md` § The public copy.
  */
 
 import { readFileSync } from "node:fs";
@@ -415,9 +419,10 @@ describe("the release workflow", () => {
 	// of reading commands rather than names.
 	it("reads the real workflow as a list of steps, one per item", () => {
 		const steps = stepsOf(readFileSync(resolve(repoRoot, workflowPath), "utf8"));
-		expect(steps).toHaveLength(7);
-		// The first two are `uses:` steps and run nothing; every other one runs
-		// something. A parser that lost a step, or merged two, fails here.
+		expect(steps).toHaveLength(8);
+		// The first two and the attestation are `uses:` steps and run
+		// nothing; every other one runs something. A parser that lost a step, or
+		// merged two, fails here.
 		expect(steps.filter((step) => step.run !== "")).toHaveLength(5);
 	});
 
@@ -429,5 +434,188 @@ describe("the release workflow", () => {
 		const blocks = steps.filter((step) => step.run.includes("\n"));
 		expect(blocks.length).toBeGreaterThan(0);
 		expect(blocks.some((step) => step.run.includes("GITHUB_REF"))).toBe(true);
+	});
+});
+
+/**
+ * The release's provenance: a signed record, made by the workflow, that each
+ * release file was built from the tagged commit by this workflow.
+ *
+ * The community directory's review of 0.1.0 recommended it. What a later
+ * edit can lose: the step, its place after the build (an attestation of files
+ * not yet built attests nothing), a file the release uploads but the step does
+ * not name, a file the step names that the release does not upload, and the
+ * permissions the step cannot sign or store without. The files are compared
+ * against what the publishing step uploads, read from its command, so a fourth
+ * release file added there fails here until it is attested too.
+ *
+ * The step's `with:` block and the workflow's `permissions:` are read from the
+ * text by the two readers below rather than by `stepsOf`, which keeps three
+ * keys of a step on purpose and is pinned by the step counts above.
+ */
+describe("the release workflow's attestation", () => {
+	/** A `uses:` value naming GitHub's attestation action, under either of its two names. */
+	const attestAction = /^actions\/attest(?:-build-provenance)?@/;
+
+	/**
+	 * What the workflow must grant as `write`: `contents` to cut the draft
+	 * release, `id-token` to sign the attestation and `attestations` to store
+	 * it — the two `actions/attest`'s README lists for attesting a file, beside
+	 * the one the release already needed. Its third, `artifact-metadata`, is for
+	 * a storage record, which its `action.yml` writes only with
+	 * `push-to-registry`, an image-registry option this workflow does not use.
+	 */
+	const NEEDED_PERMISSIONS = ["contents", "id-token", "attestations"];
+
+	/** The release files the publishing step uploads: the file names on its `gh release create` line. */
+	function uploadedFiles(steps: Step[]): string[] {
+		const publishing = steps.find(publishesTheRelease);
+		if (!publishing) return [];
+		const command = commandsIn(publishing.run).find((each) => /\bgh\s+release\s+create\b/.test(each)) ?? "";
+		return command.split(/\s+/).filter((word) => /^[\w.-]+\.(?:js|json|css)$/.test(word));
+	}
+
+	/**
+	 * The paths the attestation step's `subject-path` names, inline (comma
+	 * separated) or as a block scalar (one per line), read from the file's
+	 * text below the step's `uses:` line.
+	 */
+	function attestedFiles(workflow: string): string[] {
+		const lines = workflow.split("\n");
+		const opens = lines.findIndex((line) => {
+			const uses = /^\s*(?:-\s+)?uses:\s*(.*)$/.exec(line);
+			return uses !== null && attestAction.test(uses[1].trim());
+		});
+		if (opens === -1) return [];
+		const itemIndent = indentOf(lines[opens].replace(/-\s+/, "  "));
+		const paths: string[] = [];
+		let blockIndent: number | null = null;
+		for (const line of lines.slice(opens + 1)) {
+			if (line.trim() === "" || /^\s*#/.test(line)) continue;
+			const indent = indentOf(line);
+			if (blockIndent !== null) {
+				if (indent >= blockIndent) {
+					paths.push(line.trim());
+					continue;
+				}
+				blockIndent = null;
+			}
+			if (indent < itemIndent || /^\s*-\s/.test(line)) break;
+			const key = /^\s*subject-path:\s*(.*)$/.exec(line);
+			if (!key) continue;
+			const value = key[1].trim();
+			if (blockScalar.test(value)) blockIndent = indent + 1;
+			else paths.push(...value.replace(/^['"]|['"]$/g, "").split(","));
+		}
+		return paths.map((path) => path.trim()).filter((path) => path !== "");
+	}
+
+	/** The workflow-level `permissions:` mapping, key to value. */
+	function permissionsOf(workflow: string): Map<string, string> {
+		const lines = workflow.split("\n");
+		const opens = lines.findIndex((line) => /^permissions:\s*$/.test(line));
+		const granted = new Map<string, string>();
+		if (opens === -1) return granted;
+		for (const line of lines.slice(opens + 1)) {
+			if (line.trim() === "" || /^\s*#/.test(line)) continue;
+			if (indentOf(line) === 0) break;
+			const entry = /^\s*([\w-]+):\s*(\S+)/.exec(line);
+			if (entry) granted.set(entry[1], entry[2]);
+		}
+		return granted;
+	}
+
+	/** What is wrong with this workflow's attestation, in plain sentences, or `[]`. */
+	function attestationFaults(workflow: string): string[] {
+		const steps = stepsOf(workflow);
+		const attests = steps.findIndex((step) => attestAction.test(step.uses));
+		const builds = firstStepThat(steps, buildsThePlugin);
+		const problems: string[] = [];
+		if (attests === -1) problems.push("no step attests the release files");
+		if (attests !== -1 && builds !== -1 && attests < builds) {
+			problems.push("the attestation comes before the build");
+		}
+		if (attests !== -1) {
+			const attested = attestedFiles(workflow);
+			const uploaded = uploadedFiles(steps);
+			for (const file of uploaded) {
+				if (!attested.includes(file)) problems.push(`${file} is uploaded but not attested`);
+			}
+			for (const file of attested) {
+				if (!uploaded.includes(file)) problems.push(`${file} is attested but not uploaded`);
+			}
+		}
+		const granted = permissionsOf(workflow);
+		for (const permission of NEEDED_PERMISSIONS) {
+			if (granted.get(permission) !== "write") problems.push(`the workflow does not grant ${permission}: write`);
+		}
+		return problems;
+	}
+
+	const permissions = ["permissions:", "  contents: write", "  id-token: write", "  attestations: write", ""];
+	const publishThree = [
+		"      - name: Create the draft release",
+		'        run: gh release create "$tag" --title="$tag" --draft main.js manifest.json styles.css',
+	].join("\n");
+	const attestThree = [
+		"      - uses: actions/attest-build-provenance@v4",
+		"        with:",
+		"          subject-path: |",
+		"            main.js",
+		"            manifest.json",
+		"            styles.css",
+	].join("\n");
+	const withPermissions = (workflow: string, granted = permissions) =>
+		workflow.replace("jobs:", [...granted, "jobs:"].join("\n"));
+
+	it("attests every file the real release uploads, after the build, with the permissions it needs", () => {
+		const workflow = readFileSync(resolve(repoRoot, workflowPath), "utf8");
+		expect(uploadedFiles(stepsOf(workflow))).toEqual(["main.js", "manifest.json", "styles.css"]);
+		expect(attestationFaults(workflow)).toEqual([]);
+	});
+
+	it("passes a fixture that is right, so the cases below fail for their own reason", () => {
+		const workflow = withPermissions(workflowOf(checkout, install, test, build, attestThree, publishThree));
+		expect(attestationFaults(workflow)).toEqual([]);
+	});
+
+	it("says so when there is no attestation step", () => {
+		const workflow = withPermissions(workflowOf(checkout, install, test, build, publishThree));
+		expect(attestationFaults(workflow)).toEqual(["no step attests the release files"]);
+	});
+
+	it("says so when the attestation runs before the build", () => {
+		const workflow = withPermissions(workflowOf(checkout, install, test, attestThree, build, publishThree));
+		expect(attestationFaults(workflow)).toEqual(["the attestation comes before the build"]);
+	});
+
+	it("says so when a file the release uploads is not attested, read inline or as a block", () => {
+		const inline = [
+			"      - uses: actions/attest-build-provenance@v4",
+			"        with:",
+			"          subject-path: 'main.js, manifest.json'",
+		].join("\n");
+		const block = attestThree.replace("            styles.css\n", "").replace("\n            styles.css", "");
+		for (const attest of [inline, block]) {
+			const workflow = withPermissions(workflowOf(checkout, install, test, build, attest, publishThree));
+			expect(attestationFaults(workflow)).toEqual(["styles.css is uploaded but not attested"]);
+		}
+	});
+
+	it("says so when the step attests a file the release does not upload", () => {
+		const extra = attestThree.replace("            styles.css", "            styles.css\n            main.js.map");
+		const workflow = withPermissions(workflowOf(checkout, install, test, build, extra, publishThree));
+		expect(attestationFaults(workflow)).toEqual(["main.js.map is attested but not uploaded"]);
+	});
+
+	it("says so when any one permission the step needs is not granted, or granted read only", () => {
+		for (const permission of NEEDED_PERMISSIONS) {
+			const without = permissions.filter((line) => !line.includes(`${permission}:`));
+			const readOnly = permissions.map((line) => (line.includes(`${permission}:`) ? `  ${permission}: read` : line));
+			for (const granted of [without, readOnly]) {
+				const workflow = withPermissions(workflowOf(checkout, install, test, build, attestThree, publishThree), granted);
+				expect(attestationFaults(workflow)).toEqual([`the workflow does not grant ${permission}: write`]);
+			}
+		}
 	});
 });

@@ -1279,7 +1279,7 @@ interface GatedView {
 
 /**
  * The class that hides a ribbon icon whose feature is switched off. `styles.css`
- * gives it `display: none !important`.
+ * gives it `display: none`, weighted to beat a theme.
  */
 const WITHDRAWN_RIBBON_ICON = "effortless-ribbon-icon-withdrawn";
 

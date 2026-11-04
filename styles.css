@@ -1199,10 +1199,17 @@
 }
 
 /* A ribbon icon whose feature is switched off. Obsidian's ribbon cannot drop an
-   item, and redraws the bar from its own list, setting each element's inline
-   `display` as it goes; `!important` is what outranks that. */
-.effortless-ribbon-icon-withdrawn {
-	display: none !important;
+   item, and redraws the bar from its own list. A redraw clears each shown
+   item's inline `display` rather than setting one, so what this rule has to
+   beat is app.css's `.clickable-icon { display: flex }` and any theme, whose
+   stylesheet comes after this one; all three were read back on Obsidian
+   1.15.0 (docs/acceptance-shots/issue-1267-ribbon-withdrawn.txt). The class
+   is named three times for the weight of three
+   classes, the bar the checkbox rules above are held to, without naming any of
+   Obsidian's own classes, which could change under it; `!important` is not
+   used, as Obsidian's guidelines ask. */
+.effortless-ribbon-icon-withdrawn.effortless-ribbon-icon-withdrawn.effortless-ribbon-icon-withdrawn {
+	display: none;
 }
 
 /* Review's list rows. The sidebar is narrow, so the date and the name share one
@@ -1360,7 +1367,17 @@
    no box for an empty frontmatter anyway, so no drive has shown it changing
    anything, and it is there so this rule never hides a box it was not written
    for. Adding a property to a
-   note whose box is hidden is Obsidian's own "Add file property" command. */
+   note whose box is hidden is Obsidian's own "Add file property" command.
+
+   Why `:has` and not a class the plugin puts on the box, which the community
+   directory's review of 0.1.0 suggested: the published API hands a
+   plugin no handle on the box (`MarkdownView`, `obsidian.d.ts:4188`, declares
+   none), so the class would mean reaching into Obsidian's own elements and
+   watching each note's box for rows coming and going, and a box whose class
+   went stale would stay hidden after the person added a property. The rule's
+   subject is the box itself, one per open note, not the whole page; Obsidian
+   1.15.0's own app.css carries seven `:has` rules
+   (docs/acceptance-shots/issue-1267-ribbon-withdrawn.txt). */
 
 .metadata-container:has(
 	.metadata-property[data-property-key="effortless-meeting"],

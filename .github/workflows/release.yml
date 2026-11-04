@@ -8,6 +8,12 @@
 #
 # The release is left as a draft on purpose, so the assets can be checked before
 # anyone can install them.
+#
+# Each of the three files gets a signed provenance attestation: a record, kept
+# by GitHub, that this workflow built it from the tagged commit. Anyone can
+# check a downloaded file against it with
+# `gh attestation verify main.js -R nickdin/obsidian-effortless`. The Obsidian
+# community directory's review recommends it.
 
 name: Release
 
@@ -16,8 +22,14 @@ on:
     tags:
       - "*"
 
+# contents: the draft release. id-token: the short-lived identity the
+# attestation is signed with. attestations: storing it. Not artifact-metadata:
+# the attestation action writes a storage record only when it also pushes to an
+# image registry, which this workflow does not.
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   build:
@@ -51,6 +63,14 @@ jobs:
             echo "Tag $tag does not match manifest.json version $manifest." >&2
             exit 1
           fi
+
+      - name: Attest the release files
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
 
       - name: Create the draft release
         env:

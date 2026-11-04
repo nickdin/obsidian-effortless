@@ -8,7 +8,7 @@ It grew out of Ryder Carroll's [bullet journal method](https://bulletjournal.com
 
 Built for one person's way of working, and published in case it suits yours.
 
-**Nothing here is finished, and nothing is published.** This repository holds the plugin's core — what every feature plugs into — and its eight features, listed under *What it does, and does not* below. They began as five separate plugins, and all eight now live here. What each feature still lacks is on the tracker, under that feature's spec, and publishing to Obsidian's community plugin list comes last.
+**Published, and still growing.** Effortless is in Obsidian's community plugin list, so you can install it from inside Obsidian. This repository holds the plugin's core — what every feature plugs into — and its eight features, listed under *What it does, and does not* below. They began as five separate plugins, and all eight now live here. What each feature still lacks is on the author's tracker, under that feature's spec.
 
 Effortless reads and writes the Tasks plugin's own task-line format — the same ⏳ scheduled and 📅 due stamps — and does not need the Tasks plugin installed to do it.
 
@@ -33,6 +33,8 @@ Two limits worth knowing before you install:
 
 - **Task consistency does not run on a phone.** The service that copies your vault to a phone can write the same two files at any moment, from outside Effortless, and the clash check is built to catch two edits of yours, not that service writing at the same time as you. Its row on the settings screen says so on the device it is unavailable on.
 - **No promise that Effortless works alongside [Day Planner](https://github.com/ivan-lednev/obsidian-day-planner).** Day Planner moves task lines between the day's logs, which is the same text Effortless keeps consistent.
+
+What it reads, and what leaves your device: Effortless lists every note in your vault, to find your collections, the notes Review counts, the notes Migration can file a task into, and each meeting's note. That list stays on your device. The only thing Effortless sends anywhere is the calendar fetches described under *Calendars*.
 
 ## Calendars
 
