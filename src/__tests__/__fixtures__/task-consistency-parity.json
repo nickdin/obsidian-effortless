@@ -1,0 +1,2896 @@
+{
+	"about": [
+		"The old sync engine's parity corpus (#813, for the replay in #814): every named scenario of the pre-merge Effortless plugin's `src/sync/computeSync.test.ts`, as the two notes before and the old plugin's own output after.",
+		"Recorded, not retyped. The old suite was run at the commit below with its test harness swapped for a recorder that captured each `describe` block's one `computeSync` call (input and output) and each assertion it executed, with its line and message. 245 assertions ran and all 245 passed, the same count the old suite prints for itself. The recorder is not in this repository, because it wraps the old test file.",
+		"Lines are the note's text split on `\\n`. An `after` of null means the old plugin returned that note unchanged. Every scenario ran with `settings`: the collection is named `My Project`, today is 2026-03-25.",
+		"`direction` is the old plugin's only notion of which side changed: it ran `from-project` when the person left the collection and `from-daglogg` when they left today's log, and each direction ran different steps. This plugin has no direction, so `editedSide` records the side each scenario's own premise, read from its comments, says the person edited; `neither` means the scenario expects nothing to happen, and `unstated` means its comments do not say.",
+		"The old pairing comment is `%% eid:<id> %%`; this plugin's is `%% task-consistency:<eid> <hash> %%`. The texts carry the old form. An old assertion that looks for `%% eid:` reads as: the line carries the pairing marker for that eid. An id written `NEW-1`, `NEW-2`, ... is one the old plugin generated during that scenario (at random: `Date.now()` in base 36 plus four random characters), numbered in order of first appearance in the output, collection first, and replaced so the file does not change from one recording to the next.",
+		"`namedDifferences` carries each row of #709 § Named differences whose answer the old output does not bind. Row 2 marks every scenario whose old output holds a line rebuilt from parts — a copy into the log, a text or date sync, a line filed from the log, or a subtask re-indented on its way to the completed heading — so the replay compares fields there, not bytes. Row 4 is the scenario that files a hand-typed log task into the collection; row 5 the one that cancels a task because its eid is missing from the log. No scenario exercises rows 1, 3, 6, 7 or 8. A scenario with no row is not thereby one whose old answer this plugin keeps: several old answers are overturned by #709's own decisions 8 to 11 without a row of their own — a date moved later, a re-indent, a one-sided edit the old `direction` skipped — and #814 carries that list.",
+		"Content: every task, name, date and id is the old suite's own, and each was read before it was kept — all placeholders (`My Project`, `Write report`, `abc123` and the like). One change: the two IT-8 scenarios' log held the Swedish notes heading a real day's log carries, and now holds `# Notes`, in the texts and in one assertion's message; the old code treats any level-1 heading alike, and its output was recorded on the renamed text rather than edited afterwards. The four section headings are the old plugin's shipped defaults (`DEFAULT_SETTINGS` in its `src/types.ts`), not taken from any one day. The completed heading has to stay Swedish, because the old code finds it by a fixed pattern (`RE_SLUTFORD_HEADING`) whatever it is told; the other three reach the old code as settings and could have been renamed, and are kept so the four read as the old plugin's one default set."
+	],
+	"source": {
+		"repository": "The pre-merge Effortless plugin's clone, ~/Devbox/Effortless, on the laptop only; never pushed.",
+		"commit": "3a1deba861e94481046d74e65ddc40dceb3b2180",
+		"file": "src/sync/computeSync.test.ts",
+		"recorded": "2026-09-25"
+	},
+	"settings": {
+		"today": "2026-03-25",
+		"collectionName": "My Project",
+		"tasksHeading": "Uppgifter",
+		"todayHeading": "Att göra idag",
+		"overdueHeading": "Försenade",
+		"completedHeading": "Slutförda uppgifter"
+	},
+	"assertions": {
+		"total": 245,
+		"kept": 241,
+		"dropped": {
+			"breadcrumb": 4,
+			"rebuildShape": 0
+		},
+		"reasons": {
+			"breadcrumb": "Asserts that the log line contains the literal `[[My Project]]`. The old plugin rebuilt that breadcrumb on every write; here the collection's name is ordinary visible text, written once at copy time and carried untouched after that, so its literal form is no longer an expectation.",
+			"rebuildShape": "None dropped for this reason, and it is kept here so the count says so: no old assertion pins the shape of a rebuilt line — each reads a line with `includes`, a prefix or a position. The scenarios whose old output holds a rebuilt line carry named difference 2 instead."
+		}
+	},
+	"scenarios": [
+		{
+			"name": "AC-4: open task with scheduled today syncs to daglogg",
+			"oldLine": 74,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Write report ⏳ 2026-03-25"
+				],
+				"log": [
+					"## Att göra idag",
+					""
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Write report ⏳ 2026-03-25 %% eid:NEW-1 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Write report ⏳ 2026-03-25 [[My Project]] %% eid:NEW-1 %%",
+					""
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 86,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 87,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 91,
+					"message": "task appears in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 92,
+					"message": "has project link",
+					"dropped": "breadcrumb"
+				},
+				{
+					"oldLine": 93,
+					"message": "has eid",
+					"dropped": null
+				},
+				{
+					"oldLine": 97,
+					"message": "project task marked [/]",
+					"dropped": null
+				},
+				{
+					"oldLine": 98,
+					"message": "project task has eid",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-4: open task with due date today (no scheduled) syncs to daglogg",
+			"oldLine": 101,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Submit form 📅 2026-03-25"
+				],
+				"log": [
+					"## Att göra idag",
+					""
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Submit form 📅 2026-03-25 %% eid:NEW-1 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Submit form 📅 2026-03-25 [[My Project]] %% eid:NEW-1 %%",
+					""
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 110,
+					"message": "daglogg updated for due date task",
+					"dropped": null
+				},
+				{
+					"oldLine": 113,
+					"message": "due date task in daglogg",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-4: [>] and [<] tasks are ignored",
+			"oldLine": 116,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [>] Forwarded task ⏳ 2026-03-25",
+					"- [<] Scheduled task ⏳ 2026-03-25"
+				],
+				"log": [
+					"## Att göra idag",
+					""
+				]
+			},
+			"after": {
+				"collection": null,
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 131,
+					"message": "[>] and [<] ignored (no daglogg change)",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-5: task with same eid already in daglogg is not duplicated",
+			"oldLine": 139,
+			"direction": "from-project",
+			"editedSide": "neither",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Existing task ⏳ 2026-03-25 %% eid:abc123 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Existing task ⏳ 2026-03-25 [[My Project]] %% eid:abc123 %%"
+				]
+			},
+			"after": {
+				"collection": null,
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 156,
+					"message": "daglogg unchanged (idempotent)",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-6: task with past date goes to Försenade",
+			"oldLine": 164,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Old task ⏳ 2026-03-24"
+				],
+				"log": [
+					"## Att göra idag",
+					""
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Old task ⏳ 2026-03-24 %% eid:NEW-1 %%"
+				],
+				"log": [
+					"## Försenade",
+					"- [/] Old task ⏳ 2026-03-24 [[My Project]] %% eid:NEW-1 %%",
+					"",
+					"## Att göra idag",
+					""
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 173,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 176,
+					"message": "Försenade section created",
+					"dropped": null
+				},
+				{
+					"oldLine": 178,
+					"message": "task in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 183,
+					"message": "past task marked [/]",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-7: text change in daglogg syncs to project",
+			"oldLine": 190,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Original text ⏳ 2026-03-25 %% eid:txt001 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Changed text ⏳ 2026-03-25 [[My Project]] %% eid:txt001 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Changed text ⏳ 2026-03-25 %% eid:txt001 %%"
+				],
+				"log": null
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 203,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 206,
+					"message": "task found by eid",
+					"dropped": null
+				},
+				{
+					"oldLine": 207,
+					"message": "text synced from daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 208,
+					"message": "old text replaced",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-7: metadata change (date) in daglogg syncs to project",
+			"oldLine": 211,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Task A ⏳ 2026-03-25 %% eid:meta01 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Task A ⏳ 2026-03-26 [[My Project]] %% eid:meta01 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Task A ⏳ 2026-03-26 %% eid:meta01 %%"
+				],
+				"log": [
+					"## Att göra idag"
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 224,
+					"message": "project updated for metadata change",
+					"dropped": null
+				},
+				{
+					"oldLine": 227,
+					"message": "new date synced to project",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-8: [x] in daglogg marks project [x] and moves to Slutförda",
+			"oldLine": 234,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Done task ⏳ 2026-03-25 %% eid:done01 %%",
+					"- [ ] Other task"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [x] Done task ⏳ 2026-03-25 [[My Project]] %% eid:done01 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Other task",
+					"",
+					"## Slutförda uppgifter",
+					"- [x] Done task ⏳ 2026-03-25 %% eid:done01 %%"
+				],
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 248,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 251,
+					"message": "Slutförda section exists",
+					"dropped": null
+				},
+				{
+					"oldLine": 253,
+					"message": "task marked [x] in Slutförda",
+					"dropped": null
+				},
+				{
+					"oldLine": 261,
+					"message": "task removed from Uppgifter section",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-8: [-] in daglogg marks project [-] and moves to Slutförda",
+			"oldLine": 264,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Cancel me ⏳ 2026-03-25 %% eid:canc01 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [-] Cancel me ⏳ 2026-03-25 [[My Project]] %% eid:canc01 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"",
+					"## Slutförda uppgifter",
+					"- [-] Cancel me ⏳ 2026-03-25 %% eid:canc01 %%"
+				],
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 277,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 280,
+					"message": "task marked [-]",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-8: [x] in daglogg stays in daglogg after sync (daglogg preserved)",
+			"oldLine": 283,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Done task ⏳ 2026-03-25 %% eid:dagpres01 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [x] Done task ⏳ 2026-03-25 [[My Project]] %% eid:dagpres01 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"",
+					"## Slutförda uppgifter",
+					"- [x] Done task ⏳ 2026-03-25 %% eid:dagpres01 %%"
+				],
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 305,
+					"message": "task still in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 306,
+					"message": "daglogg task has [x] status",
+					"dropped": null
+				},
+				{
+					"oldLine": 309,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 312,
+					"message": "task found in project",
+					"dropped": null
+				},
+				{
+					"oldLine": 313,
+					"message": "task marked [x] in project",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-8: [-] in daglogg stays in daglogg after sync (daglogg preserved)",
+			"oldLine": 316,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Cancel me ⏳ 2026-03-25 %% eid:dagpres02 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [-] Cancel me ⏳ 2026-03-25 [[My Project]] %% eid:dagpres02 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"",
+					"## Slutförda uppgifter",
+					"- [-] Cancel me ⏳ 2026-03-25 %% eid:dagpres02 %%"
+				],
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 334,
+					"message": "task still in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 335,
+					"message": "daglogg task has [-] status",
+					"dropped": null
+				},
+				{
+					"oldLine": 338,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 341,
+					"message": "task found in project",
+					"dropped": null
+				},
+				{
+					"oldLine": 342,
+					"message": "task marked [-] in project",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-8: deleted from daglogg (eid in project [/] but missing) → [-]",
+			"oldLine": 345,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Deleted task ⏳ 2026-03-25 %% eid:del001 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					""
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"",
+					"## Slutförda uppgifter",
+					"- [-] Deleted task ⏳ 2026-03-25 %% eid:del001 %%"
+				],
+				"log": null
+			},
+			"namedDifferences": [
+				5
+			],
+			"assertions": [
+				{
+					"oldLine": 358,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 361,
+					"message": "task still exists",
+					"dropped": null
+				},
+				{
+					"oldLine": 362,
+					"message": "task marked [-] (cancelled)",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-9: date changed to future in daglogg → un-sync",
+			"oldLine": 369,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Postponed ⏳ 2026-03-25 %% eid:post01 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Postponed ⏳ 2026-03-26 [[My Project]] %% eid:post01 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Postponed ⏳ 2026-03-26 %% eid:post01 %%"
+				],
+				"log": [
+					"## Att göra idag"
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 382,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 385,
+					"message": "[/] reverted to [ ]",
+					"dropped": null
+				},
+				{
+					"oldLine": 387,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 388,
+					"message": "task removed from daglogg",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-9: task in Försenade with date changed to today → move to Att göra idag",
+			"oldLine": 391,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Was late ⏳ 2026-03-25 %% eid:late01 %%"
+				],
+				"log": [
+					"## Försenade",
+					"- [/] Was late ⏳ 2026-03-25 [[My Project]] %% eid:late01 %%",
+					"",
+					"## Att göra idag",
+					""
+				]
+			},
+			"after": {
+				"collection": null,
+				"log": [
+					"## Försenade",
+					"",
+					"## Att göra idag",
+					"- [/] Was late ⏳ 2026-03-25 [[My Project]] %% eid:late01 %%",
+					""
+				]
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 407,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 415,
+					"message": "task moved to Att göra idag",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-10: new task in daglogg with [[link]] creates task in project",
+			"oldLine": 422,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Existing task"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [ ] Brand new task [[My Project]]"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Existing task",
+					"- [/] Brand new task %% eid:NEW-1 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [ ] Brand new task [[My Project]] %% eid:NEW-1 %%"
+				]
+			},
+			"namedDifferences": [
+				2,
+				4
+			],
+			"assertions": [
+				{
+					"oldLine": 435,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 438,
+					"message": "new task created in project",
+					"dropped": null
+				},
+				{
+					"oldLine": 439,
+					"message": "new task marked [/]",
+					"dropped": null
+				},
+				{
+					"oldLine": 440,
+					"message": "new task has eid",
+					"dropped": null
+				},
+				{
+					"oldLine": 443,
+					"message": "daglogg updated with eid",
+					"dropped": null
+				},
+				{
+					"oldLine": 446,
+					"message": "daglogg task gets eid",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "Edge: empty daglogg gets sections created",
+			"oldLine": 453,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] New task ⏳ 2026-03-25"
+				],
+				"log": [
+					""
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] New task ⏳ 2026-03-25 %% eid:NEW-1 %%"
+				],
+				"log": [
+					"",
+					"## Att göra idag",
+					"- [/] New task ⏳ 2026-03-25 [[My Project]] %% eid:NEW-1 %%",
+					""
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 462,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 463,
+					"message": "section created",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "Edge: task in Slutförda is not re-synced",
+			"oldLine": 470,
+			"direction": "from-project",
+			"editedSide": "neither",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"",
+					"## Slutförda uppgifter",
+					"- [x] Archived task ⏳ 2026-03-25 %% eid:arch01 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					""
+				]
+			},
+			"after": {
+				"collection": null,
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 484,
+					"message": "no daglogg change (correct)",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-13: findSection matches heading case-insensitively",
+			"oldLine": 492,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Case test ⏳ 2026-03-25"
+				],
+				"log": [
+					"## att göra idag",
+					""
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Case test ⏳ 2026-03-25 %% eid:NEW-1 %%"
+				],
+				"log": [
+					"## att göra idag",
+					"- [/] Case test ⏳ 2026-03-25 [[My Project]] %% eid:NEW-1 %%",
+					""
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 504,
+					"message": "daglogg updated despite lowercase heading",
+					"dropped": null
+				},
+				{
+					"oldLine": 507,
+					"message": "task appears in daglogg with lowercase heading",
+					"dropped": null
+				},
+				{
+					"oldLine": 508,
+					"message": "has project link",
+					"dropped": "breadcrumb"
+				},
+				{
+					"oldLine": 509,
+					"message": "has eid",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-14: [x] in project syncs to daglogg and moves to Slutförda",
+			"oldLine": 516,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [x] Done in project ⏳ 2026-03-25 %% eid:px01 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Done in project ⏳ 2026-03-25 [[My Project]] %% eid:px01 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"",
+					"## Slutförda uppgifter",
+					"- [x] Done in project ⏳ 2026-03-25 %% eid:px01 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [x] Done in project ⏳ 2026-03-25 [[My Project]] %% eid:px01 %%"
+				]
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 530,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 533,
+					"message": "task still in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 534,
+					"message": "daglogg task marked [x]",
+					"dropped": null
+				},
+				{
+					"oldLine": 537,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 540,
+					"message": "Slutförda section exists",
+					"dropped": null
+				},
+				{
+					"oldLine": 542,
+					"message": "task marked [x] in Slutförda",
+					"dropped": null
+				},
+				{
+					"oldLine": 548,
+					"message": "task removed from Uppgifter section",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-14: [-] in project syncs to daglogg and moves to Slutförda",
+			"oldLine": 551,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [-] Cancelled in project ⏳ 2026-03-25 %% eid:px02 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Cancelled in project ⏳ 2026-03-25 [[My Project]] %% eid:px02 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"",
+					"## Slutförda uppgifter",
+					"- [-] Cancelled in project ⏳ 2026-03-25 %% eid:px02 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [-] Cancelled in project ⏳ 2026-03-25 [[My Project]] %% eid:px02 %%"
+				]
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 565,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 568,
+					"message": "task still in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 569,
+					"message": "daglogg task marked [-]",
+					"dropped": null
+				},
+				{
+					"oldLine": 572,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 575,
+					"message": "task marked [-] in project",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-17: direction from-project does not run step 3 (daglogg→project)",
+			"oldLine": 582,
+			"direction": "from-project",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Task ⏳ 2026-03-25 %% eid:dir01 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Changed text ⏳ 2026-03-25 [[My Project]] %% eid:dir01 %%"
+				]
+			},
+			"after": {
+				"collection": null,
+				"log": [
+					"## Att göra idag",
+					"- [/] Task ⏳ 2026-03-25 [[My Project]] %% eid:dir01 %%"
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 605,
+					"message": "project unchanged (step 3 skipped correctly)",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-17: direction from-daglogg does not run step 2 (project→daglogg)",
+			"oldLine": 609,
+			"direction": "from-daglogg",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] New task ⏳ 2026-03-25"
+				],
+				"log": [
+					"## Att göra idag",
+					""
+				]
+			},
+			"after": {
+				"collection": null,
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 628,
+					"message": "daglogg unchanged (step 2 skipped correctly)",
+					"dropped": null
+				},
+				{
+					"oldLine": 637,
+					"message": "project unchanged (step 2 skipped correctly)",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-17: direction from-daglogg runs step 3 (text sync)",
+			"oldLine": 641,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Old text ⏳ 2026-03-25 %% eid:dir03 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] New text ⏳ 2026-03-25 [[My Project]] %% eid:dir03 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] New text ⏳ 2026-03-25 %% eid:dir03 %%"
+				],
+				"log": null
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 656,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 659,
+					"message": "task found by eid",
+					"dropped": null
+				},
+				{
+					"oldLine": 660,
+					"message": "text synced from daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 661,
+					"message": "old text replaced",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-20: text change in project syncs to daglogg (from-project)",
+			"oldLine": 668,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Updated text ⏳ 2026-03-25 %% eid:2c01 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Old text ⏳ 2026-03-25 [[My Project]] %% eid:2c01 %%"
+				]
+			},
+			"after": {
+				"collection": null,
+				"log": [
+					"## Att göra idag",
+					"- [/] Updated text ⏳ 2026-03-25 [[My Project]] %% eid:2c01 %%"
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 681,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 684,
+					"message": "task found in daglogg by eid",
+					"dropped": null
+				},
+				{
+					"oldLine": 685,
+					"message": "text synced from project",
+					"dropped": null
+				},
+				{
+					"oldLine": 686,
+					"message": "old text replaced",
+					"dropped": null
+				},
+				{
+					"oldLine": 687,
+					"message": "project link preserved",
+					"dropped": "breadcrumb"
+				},
+				{
+					"oldLine": 688,
+					"message": "eid preserved",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-21: metadata change (priority) in project syncs to daglogg (from-project)",
+			"oldLine": 695,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Task ⏳ 2026-03-25 ⏫ %% eid:2c02 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Task ⏳ 2026-03-25 [[My Project]] %% eid:2c02 %%"
+				]
+			},
+			"after": {
+				"collection": null,
+				"log": [
+					"## Att göra idag",
+					"- [/] Task ⏳ 2026-03-25 ⏫ [[My Project]] %% eid:2c02 %%"
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 708,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 711,
+					"message": "task found in daglogg by eid",
+					"dropped": null
+				},
+				{
+					"oldLine": 712,
+					"message": "priority synced to daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 713,
+					"message": "project link preserved",
+					"dropped": "breadcrumb"
+				}
+			]
+		},
+		{
+			"name": "AC-22: date changed to future in project removes from daglogg",
+			"oldLine": 720,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Postponed ⏳ 2026-03-26 %% eid:2c03 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Postponed ⏳ 2026-03-25 [[My Project]] %% eid:2c03 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Postponed ⏳ 2026-03-26 %% eid:2c03 %%"
+				],
+				"log": [
+					"## Att göra idag"
+				]
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 734,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 735,
+					"message": "task removed from daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 738,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 741,
+					"message": "task still in project",
+					"dropped": null
+				},
+				{
+					"oldLine": 742,
+					"message": "[/] reverted to [ ]",
+					"dropped": null
+				},
+				{
+					"oldLine": 743,
+					"message": "no longer [/]",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-22: date removed in project removes from daglogg",
+			"oldLine": 746,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] No date anymore %% eid:2c04 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] No date anymore ⏳ 2026-03-25 [[My Project]] %% eid:2c04 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] No date anymore %% eid:2c04 %%"
+				],
+				"log": [
+					"## Att göra idag"
+				]
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 760,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 761,
+					"message": "task removed from daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 764,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 767,
+					"message": "task still in project",
+					"dropped": null
+				},
+				{
+					"oldLine": 768,
+					"message": "[/] reverted to [ ]",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "IT-8: tasks do not leak past --- separator in daglogg",
+			"oldLine": 775,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Task A ⏳ 2026-03-25"
+				],
+				"log": [
+					"## Att göra idag",
+					"",
+					"---",
+					"# Notes",
+					"Some notes here"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Task A ⏳ 2026-03-25 %% eid:NEW-1 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Task A ⏳ 2026-03-25 [[My Project]] %% eid:NEW-1 %%",
+					"",
+					"---",
+					"# Notes",
+					"Some notes here"
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 790,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 794,
+					"message": "task inserted",
+					"dropped": null
+				},
+				{
+					"oldLine": 795,
+					"message": "task is BEFORE --- separator",
+					"dropped": null
+				},
+				{
+					"oldLine": 798,
+					"message": "task is BEFORE # Notes",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "IT-8: Försenade section created ABOVE Att göra idag",
+			"oldLine": 801,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Late task ⏳ 2026-03-24"
+				],
+				"log": [
+					"## Att göra idag",
+					"",
+					"---",
+					"# Notes"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Late task ⏳ 2026-03-24 %% eid:NEW-1 %%"
+				],
+				"log": [
+					"## Försenade",
+					"- [/] Late task ⏳ 2026-03-24 [[My Project]] %% eid:NEW-1 %%",
+					"",
+					"## Att göra idag",
+					"",
+					"---",
+					"# Notes"
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 815,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 819,
+					"message": "Försenade section created",
+					"dropped": null
+				},
+				{
+					"oldLine": 820,
+					"message": "Försenade is ABOVE Att göra idag",
+					"dropped": null
+				},
+				{
+					"oldLine": 823,
+					"message": "task is in Försenade section",
+					"dropped": null
+				},
+				{
+					"oldLine": 824,
+					"message": "task is before Att göra idag",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-7 subtask cascade: parent [x] in daglogg cascades to subtasks in project",
+			"oldLine": 831,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Parent task ⏳ 2026-03-25 %% eid:casc01 %%",
+					"\t- [ ] Subtask 1 %% eid:casc02 %%",
+					"\t- [ ] Subtask 2 %% eid:casc03 %%",
+					"- [ ] Other task"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [x] Parent task ⏳ 2026-03-25 [[My Project]] %% eid:casc01 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Other task",
+					"",
+					"## Slutförda uppgifter",
+					"- [x] Parent task ⏳ 2026-03-25 %% eid:casc01 %%",
+					"\t- [x] Subtask 1 %% eid:casc02 %%",
+					"\t- [x] Subtask 2 %% eid:casc03 %%"
+				],
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 847,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 852,
+					"message": "parent found",
+					"dropped": null
+				},
+				{
+					"oldLine": 853,
+					"message": "parent marked [x]",
+					"dropped": null
+				},
+				{
+					"oldLine": 857,
+					"message": "subtask 1 found",
+					"dropped": null
+				},
+				{
+					"oldLine": 858,
+					"message": "subtask 1 cascaded to [x]",
+					"dropped": null
+				},
+				{
+					"oldLine": 861,
+					"message": "subtask 2 found",
+					"dropped": null
+				},
+				{
+					"oldLine": 862,
+					"message": "subtask 2 cascaded to [x]",
+					"dropped": null
+				},
+				{
+					"oldLine": 866,
+					"message": "other task found",
+					"dropped": null
+				},
+				{
+					"oldLine": 867,
+					"message": "other task not affected",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-8 subtask cascade: parent [-] in daglogg cascades to subtasks in project",
+			"oldLine": 870,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Parent cancel ⏳ 2026-03-25 %% eid:casc10 %%",
+					"  - [ ] Sub A %% eid:casc11 %%",
+					"  - [ ] Sub B %% eid:casc12 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [-] Parent cancel ⏳ 2026-03-25 [[My Project]] %% eid:casc10 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"",
+					"## Slutförda uppgifter",
+					"- [-] Parent cancel ⏳ 2026-03-25 %% eid:casc10 %%",
+					"\t\t- [-] Sub A %% eid:casc11 %%",
+					"\t\t- [-] Sub B %% eid:casc12 %%"
+				],
+				"log": null
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 885,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 889,
+					"message": "sub A found",
+					"dropped": null
+				},
+				{
+					"oldLine": 890,
+					"message": "sub A cascaded to [-]",
+					"dropped": null
+				},
+				{
+					"oldLine": 893,
+					"message": "sub B found",
+					"dropped": null
+				},
+				{
+					"oldLine": 894,
+					"message": "sub B cascaded to [-]",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-9 subtask cascade: recursive — subtask of subtask also cascades",
+			"oldLine": 897,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Root task ⏳ 2026-03-25 %% eid:rec01 %%",
+					"\t- [ ] Child task %% eid:rec02 %%",
+					"\t\t- [ ] Grandchild task %% eid:rec03 %%",
+					"- [ ] Sibling task %% eid:rec04 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [x] Root task ⏳ 2026-03-25 [[My Project]] %% eid:rec01 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Sibling task %% eid:rec04 %%",
+					"",
+					"## Slutförda uppgifter",
+					"- [x] Root task ⏳ 2026-03-25 %% eid:rec01 %%",
+					"\t- [x] Child task %% eid:rec02 %%",
+					"\t\t- [x] Grandchild task %% eid:rec03 %%"
+				],
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 913,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 917,
+					"message": "child task found",
+					"dropped": null
+				},
+				{
+					"oldLine": 918,
+					"message": "child cascaded to [x]",
+					"dropped": null
+				},
+				{
+					"oldLine": 921,
+					"message": "grandchild task found",
+					"dropped": null
+				},
+				{
+					"oldLine": 922,
+					"message": "grandchild recursively cascaded to [x]",
+					"dropped": null
+				},
+				{
+					"oldLine": 926,
+					"message": "sibling task found",
+					"dropped": null
+				},
+				{
+					"oldLine": 927,
+					"message": "sibling NOT cascaded (correct)",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-10 subtask cascade: cascade does NOT go upward",
+			"oldLine": 930,
+			"direction": "from-daglogg",
+			"editedSide": "neither",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Parent stays open ⏳ 2026-03-25 %% eid:up01 %%",
+					"\t- [x] Already done subtask %% eid:up02 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					""
+				]
+			},
+			"after": {
+				"collection": null,
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 952,
+					"message": "parent found",
+					"dropped": null
+				},
+				{
+					"oldLine": 953,
+					"message": "parent NOT changed upward (stays open)",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-7 subtask cascade: task without subtasks — no crash, no change",
+			"oldLine": 956,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Solo task ⏳ 2026-03-25 %% eid:solo01 %%",
+					"- [ ] Next task"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [x] Solo task ⏳ 2026-03-25 [[My Project]] %% eid:solo01 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Next task",
+					"",
+					"## Slutförda uppgifter",
+					"- [x] Solo task ⏳ 2026-03-25 %% eid:solo01 %%"
+				],
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 970,
+					"message": "project updated (task moved to Slutförda)",
+					"dropped": null
+				},
+				{
+					"oldLine": 973,
+					"message": "solo task found in Slutförda",
+					"dropped": null
+				},
+				{
+					"oldLine": 974,
+					"message": "solo task marked [x]",
+					"dropped": null
+				},
+				{
+					"oldLine": 977,
+					"message": "next task still present",
+					"dropped": null
+				},
+				{
+					"oldLine": 978,
+					"message": "next task not affected",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-7 subtask cascade (from-project): parent [x] in project cascades to subtasks",
+			"oldLine": 981,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [x] Done parent %% eid:fp01 %%",
+					"\t- [ ] Sub of done %% eid:fp02 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Done parent [[My Project]] %% eid:fp01 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"",
+					"## Slutförda uppgifter",
+					"- [x] Done parent %% eid:fp01 %%",
+					"\t- [x] Sub of done %% eid:fp02 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [x] Done parent [[My Project]] %% eid:fp01 %%"
+				]
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 996,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1000,
+					"message": "subtask found",
+					"dropped": null
+				},
+				{
+					"oldLine": 1001,
+					"message": "subtask cascaded to [x] (from-project)",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-4/AC-5: parent [x] + 2 subtasks → all 3 moved to Slutförda, correct indent",
+			"oldLine": 1008,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [x] Parent done %% eid:st01 %%",
+					"\t- [x] Sub one %% eid:st02 %%",
+					"\t- [x] Sub two %% eid:st03 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Parent done [[My Project]] %% eid:st01 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"",
+					"## Slutförda uppgifter",
+					"- [x] Parent done %% eid:st01 %%",
+					"\t- [x] Sub one %% eid:st02 %%",
+					"\t- [x] Sub two %% eid:st03 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [x] Parent done [[My Project]] %% eid:st01 %%"
+				]
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 1024,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1029,
+					"message": "Slutförda section exists",
+					"dropped": null
+				},
+				{
+					"oldLine": 1037,
+					"message": "parent moved to Slutförda (AC-4)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1038,
+					"message": "sub one moved to Slutförda (AC-4)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1039,
+					"message": "sub two moved to Slutförda (AC-4)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1042,
+					"message": "parent at indent=0 in Slutförda (AC-5)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1043,
+					"message": "sub one at indent=1 tab (AC-5)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1044,
+					"message": "sub two at indent=1 tab (AC-5)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1049,
+					"message": "parent removed from Uppgifter (AC-4)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1050,
+					"message": "sub one removed from Uppgifter (AC-4)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1051,
+					"message": "sub two removed from Uppgifter (AC-4)",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-4/AC-5: 3-level hierarchy (grandchild) → relative indent preserved (0, 1, 2)",
+			"oldLine": 1054,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [x] Grandparent %% eid:gc01 %%",
+					"\t- [x] Parent child %% eid:gc02 %%",
+					"\t\t- [x] Grandchild %% eid:gc03 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Grandparent [[My Project]] %% eid:gc01 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"",
+					"## Slutförda uppgifter",
+					"- [x] Grandparent %% eid:gc01 %%",
+					"\t- [x] Parent child %% eid:gc02 %%",
+					"\t\t- [x] Grandchild %% eid:gc03 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [x] Grandparent [[My Project]] %% eid:gc01 %%"
+				]
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 1069,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1073,
+					"message": "Slutförda section exists",
+					"dropped": null
+				},
+				{
+					"oldLine": 1080,
+					"message": "grandparent in Slutförda",
+					"dropped": null
+				},
+				{
+					"oldLine": 1081,
+					"message": "parent child in Slutförda",
+					"dropped": null
+				},
+				{
+					"oldLine": 1082,
+					"message": "grandchild in Slutförda",
+					"dropped": null
+				},
+				{
+					"oldLine": 1089,
+					"message": "grandparent at indent=0 (AC-5)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1090,
+					"message": "parent child at indent=1 (AC-5)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1091,
+					"message": "grandchild at indent=2 (AC-5)",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-4: parent [x] without subtasks → single line moved (no regression)",
+			"oldLine": 1094,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [x] Solo task %% eid:solo02 %%",
+					"- [ ] Next task ⏳ 2026-03-25 %% eid:next02 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Solo task [[My Project]] %% eid:solo02 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Next task ⏳ 2026-03-25 %% eid:next02 %%",
+					"",
+					"## Slutförda uppgifter",
+					"- [x] Solo task %% eid:solo02 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Next task ⏳ 2026-03-25 [[My Project]] %% eid:next02 %%",
+					"- [x] Solo task [[My Project]] %% eid:solo02 %%"
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 1108,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1112,
+					"message": "Slutförda section exists",
+					"dropped": null
+				},
+				{
+					"oldLine": 1115,
+					"message": "solo task in Slutförda",
+					"dropped": null
+				},
+				{
+					"oldLine": 1116,
+					"message": "solo task at indent=0",
+					"dropped": null
+				},
+				{
+					"oldLine": 1121,
+					"message": "sibling task remains in Uppgifter",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-4: parent [x] with following sibling [ ] on same indent → sibling NOT moved",
+			"oldLine": 1124,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [x] Done parent %% eid:sib01 %%",
+					"\t- [x] Sub of done %% eid:sib02 %%",
+					"- [ ] Sibling task ⏳ 2026-03-25 %% eid:sib03 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Done parent [[My Project]] %% eid:sib01 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Sibling task ⏳ 2026-03-25 %% eid:sib03 %%",
+					"",
+					"## Slutförda uppgifter",
+					"- [x] Done parent %% eid:sib01 %%",
+					"\t- [x] Sub of done %% eid:sib02 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Sibling task ⏳ 2026-03-25 [[My Project]] %% eid:sib03 %%",
+					"- [x] Done parent [[My Project]] %% eid:sib01 %%"
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 1139,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1143,
+					"message": "Slutförda section exists",
+					"dropped": null
+				},
+				{
+					"oldLine": 1147,
+					"message": "sibling NOT moved to Slutförda (stop condition)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1151,
+					"message": "parent in Slutförda",
+					"dropped": null
+				},
+				{
+					"oldLine": 1152,
+					"message": "sub in Slutförda",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-2: parent and subtask both qualify → daglogg gets parent + indented subtask",
+			"oldLine": 1159,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Parent task ⏳ 2026-03-25",
+					"\t- [ ] Child task ⏳ 2026-03-25"
+				],
+				"log": [
+					"## Att göra idag",
+					""
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Parent task ⏳ 2026-03-25 %% eid:NEW-1 %%",
+					"\t- [/] Child task ⏳ 2026-03-25 %% eid:NEW-2 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Parent task ⏳ 2026-03-25 [[My Project]] %% eid:NEW-1 %%",
+					"\t- [/] Child task ⏳ 2026-03-25 [[My Project]] %% eid:NEW-2 %%",
+					""
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 1169,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1175,
+					"message": "parent appears in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 1176,
+					"message": "child appears in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 1177,
+					"message": "parent is at indent=0",
+					"dropped": null
+				},
+				{
+					"oldLine": 1178,
+					"message": "child is tab-indented in daglogg (AC-2)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1183,
+					"message": "child directly follows parent in daglogg",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-3: only subtask qualifies (parent has no date) → subtask at indent=0",
+			"oldLine": 1186,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Parent no date",
+					"\t- [ ] Child with date ⏳ 2026-03-25"
+				],
+				"log": [
+					"## Att göra idag",
+					""
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Parent no date",
+					"\t- [/] Child with date ⏳ 2026-03-25 %% eid:NEW-1 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Child with date ⏳ 2026-03-25 [[My Project]] %% eid:NEW-1 %%",
+					""
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 1196,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1202,
+					"message": "parent NOT in daglogg (no date)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1203,
+					"message": "child appears in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 1204,
+					"message": "child placed at indent=0 (AC-3)",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-1: parent qualifies but subtask has no date → subtask NOT copied to daglogg",
+			"oldLine": 1207,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Parent task ⏳ 2026-03-25",
+					"\t- [ ] Child no date"
+				],
+				"log": [
+					"## Att göra idag",
+					""
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Parent task ⏳ 2026-03-25 %% eid:NEW-1 %%",
+					"\t- [ ] Child no date"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Parent task ⏳ 2026-03-25 [[My Project]] %% eid:NEW-1 %%",
+					""
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 1217,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1223,
+					"message": "parent in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 1224,
+					"message": "child NOT in daglogg (no date = AC-1)",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-2: 3-level hierarchy all qualifying → relative indent preserved",
+			"oldLine": 1227,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Grandparent ⏳ 2026-03-25",
+					"\t- [ ] Parent ⏳ 2026-03-25",
+					"\t\t- [ ] Child ⏳ 2026-03-25"
+				],
+				"log": [
+					"## Att göra idag",
+					""
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Grandparent ⏳ 2026-03-25 %% eid:NEW-1 %%",
+					"\t- [/] Parent ⏳ 2026-03-25 %% eid:NEW-2 %%",
+					"\t\t- [/] Child ⏳ 2026-03-25 %% eid:NEW-3 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Grandparent ⏳ 2026-03-25 [[My Project]] %% eid:NEW-1 %%",
+					"\t- [/] Parent ⏳ 2026-03-25 [[My Project]] %% eid:NEW-2 %%",
+					"\t\t- [/] Child ⏳ 2026-03-25 [[My Project]] %% eid:NEW-3 %%",
+					""
+				]
+			},
+			"namedDifferences": [
+				2
+			],
+			"assertions": [
+				{
+					"oldLine": 1238,
+					"message": "daglogg updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1245,
+					"message": "grandparent in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 1246,
+					"message": "parent in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 1247,
+					"message": "child in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 1254,
+					"message": "grandparent at indent=0",
+					"dropped": null
+				},
+				{
+					"oldLine": 1255,
+					"message": "parent at indent=1 tab",
+					"dropped": null
+				},
+				{
+					"oldLine": 1256,
+					"message": "child at indent=2 tabs",
+					"dropped": null
+				},
+				{
+					"oldLine": 1262,
+					"message": "correct order in daglogg",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-6: subtask unindented in daglogg → project task becomes top-level",
+			"oldLine": 1269,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Parent task ⏳ 2026-03-25 %% eid:ri01 %%",
+					"\t- [/] Subtask to move ⏳ 2026-03-25 %% eid:ri02 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Parent task ⏳ 2026-03-25 [[My Project]] %% eid:ri01 %%",
+					"- [/] Subtask to move ⏳ 2026-03-25 [[My Project]] %% eid:ri02 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Parent task ⏳ 2026-03-25 %% eid:ri01 %%",
+					"- [/] Subtask to move ⏳ 2026-03-25 %% eid:ri02 %%"
+				],
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 1287,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1291,
+					"message": "subtask found in project",
+					"dropped": null
+				},
+				{
+					"oldLine": 1293,
+					"message": "subtask now at indent=0 (unindented)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1295,
+					"message": "eid preserved after reindent (AC-7)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1297,
+					"message": "content preserved after reindent",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-6: task indented under parent in daglogg → project reflects new hierarchy",
+			"oldLine": 1300,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] First task ⏳ 2026-03-25 %% eid:ri03 %%",
+					"- [/] Second task ⏳ 2026-03-25 %% eid:ri04 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] First task ⏳ 2026-03-25 [[My Project]] %% eid:ri03 %%",
+					"\t- [/] Second task ⏳ 2026-03-25 [[My Project]] %% eid:ri04 %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] First task ⏳ 2026-03-25 %% eid:ri03 %%",
+					"\t- [/] Second task ⏳ 2026-03-25 %% eid:ri04 %%"
+				],
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 1318,
+					"message": "project updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1322,
+					"message": "second task found in project",
+					"dropped": null
+				},
+				{
+					"oldLine": 1324,
+					"message": "second task now at indent=1 tab (indented under first)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1325,
+					"message": "second task not over-indented",
+					"dropped": null
+				},
+				{
+					"oldLine": 1327,
+					"message": "eid preserved after reindent (AC-7)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1329,
+					"message": "content preserved after reindent",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "AC-3 regression: subtask flat in daglogg (no qualifying parent) → NO reindent in project",
+			"oldLine": 1332,
+			"direction": "from-daglogg",
+			"editedSide": "neither",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [ ] Parent no date",
+					"\t- [/] Child with date ⏳ 2026-03-25 %% eid:ri05 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Child with date ⏳ 2026-03-25 [[My Project]] %% eid:ri05 %%"
+				]
+			},
+			"after": {
+				"collection": null,
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 1358,
+					"message": "child task found in project",
+					"dropped": null
+				},
+				{
+					"oldLine": 1360,
+					"message": "child task preserved at indent=1 (AC-3 no reindent)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1361,
+					"message": "eid intact",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "from-daglogg: parent done in daglogg moves parent + subtasks to Slutförda (AC-1)",
+			"oldLine": 1371,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Parent task ⏳ 2026-03-25 %% eid:ac1a %%",
+					"\t- [/] Child A ⏳ 2026-03-25 %% eid:ac1b %%",
+					"\t- [/] Child B ⏳ 2026-03-25 %% eid:ac1c %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [x] Parent task ⏳ 2026-03-25 [[My Project]] %% eid:ac1a %%",
+					"\t- [/] Child A ⏳ 2026-03-25 [[My Project]] %% eid:ac1b %%",
+					"\t- [/] Child B ⏳ 2026-03-25 [[My Project]] %% eid:ac1c %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"",
+					"## Slutförda uppgifter",
+					"- [x] Parent task ⏳ 2026-03-25 %% eid:ac1a %%",
+					"\t- [x] Child A ⏳ 2026-03-25 %% eid:ac1b %%",
+					"\t- [x] Child B ⏳ 2026-03-25 %% eid:ac1c %%"
+				],
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 1392,
+					"message": "project was updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1396,
+					"message": "Slutförda section exists",
+					"dropped": null
+				},
+				{
+					"oldLine": 1398,
+					"message": "parent eid in Slutförda",
+					"dropped": null
+				},
+				{
+					"oldLine": 1399,
+					"message": "Child A eid in Slutförda",
+					"dropped": null
+				},
+				{
+					"oldLine": 1400,
+					"message": "Child B eid in Slutförda",
+					"dropped": null
+				},
+				{
+					"oldLine": 1404,
+					"message": "parent eid NOT in Uppgifter",
+					"dropped": null
+				},
+				{
+					"oldLine": 1405,
+					"message": "Child A eid NOT in Uppgifter",
+					"dropped": null
+				},
+				{
+					"oldLine": 1406,
+					"message": "Child B eid NOT in Uppgifter",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "from-daglogg: no orphaned subtasks remain in Uppgifter after parent done (AC-1)",
+			"oldLine": 1409,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Parent task ⏳ 2026-03-25 %% eid:ac1d %%",
+					"\t- [/] Child A ⏳ 2026-03-25 %% eid:ac1e %%",
+					"\t- [/] Child B ⏳ 2026-03-25 %% eid:ac1f %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [x] Parent task ⏳ 2026-03-25 [[My Project]] %% eid:ac1d %%",
+					"\t- [/] Child A ⏳ 2026-03-25 [[My Project]] %% eid:ac1e %%",
+					"\t- [/] Child B ⏳ 2026-03-25 [[My Project]] %% eid:ac1f %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"",
+					"## Slutförda uppgifter",
+					"- [x] Parent task ⏳ 2026-03-25 %% eid:ac1d %%",
+					"\t- [x] Child A ⏳ 2026-03-25 %% eid:ac1e %%",
+					"\t- [x] Child B ⏳ 2026-03-25 %% eid:ac1f %%"
+				],
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 1428,
+					"message": "project was updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1432,
+					"message": "Child A not orphaned in Uppgifter",
+					"dropped": null
+				},
+				{
+					"oldLine": 1433,
+					"message": "Child B not orphaned in Uppgifter",
+					"dropped": null
+				},
+				{
+					"oldLine": 1439,
+					"message": "no [x]-marked orphans remain in Uppgifter",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "from-daglogg: subtree hierarchy preserved in Slutförda — tab-indent relative to parent (AC-2)",
+			"oldLine": 1442,
+			"direction": "from-daglogg",
+			"editedSide": "log",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Parent ⏳ 2026-03-25 %% eid:ac2a %%",
+					"\t- [/] Child ⏳ 2026-03-25 %% eid:ac2b %%",
+					"\t\t- [/] Grandchild ⏳ 2026-03-25 %% eid:ac2c %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [x] Parent ⏳ 2026-03-25 [[My Project]] %% eid:ac2a %%",
+					"\t- [/] Child ⏳ 2026-03-25 [[My Project]] %% eid:ac2b %%",
+					"\t\t- [/] Grandchild ⏳ 2026-03-25 [[My Project]] %% eid:ac2c %%"
+				]
+			},
+			"after": {
+				"collection": [
+					"## Uppgifter",
+					"",
+					"## Slutförda uppgifter",
+					"- [x] Parent ⏳ 2026-03-25 %% eid:ac2a %%",
+					"\t- [x] Child ⏳ 2026-03-25 %% eid:ac2b %%",
+					"\t\t- [x] Grandchild ⏳ 2026-03-25 %% eid:ac2c %%"
+				],
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 1462,
+					"message": "project was updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1467,
+					"message": "Slutförda section exists",
+					"dropped": null
+				},
+				{
+					"oldLine": 1474,
+					"message": "parent found in Slutförda",
+					"dropped": null
+				},
+				{
+					"oldLine": 1475,
+					"message": "child found in Slutförda",
+					"dropped": null
+				},
+				{
+					"oldLine": 1476,
+					"message": "grandchild found in Slutförda",
+					"dropped": null
+				},
+				{
+					"oldLine": 1479,
+					"message": "parent at indent=0 (no leading tab)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1480,
+					"message": "child at indent=1 (one tab)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1481,
+					"message": "child not over-indented (not two tabs)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1482,
+					"message": "grandchild at indent=2 (two tabs)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1483,
+					"message": "grandchild not over-indented (not three tabs)",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "from-project: subtask indented in project → daglogg line gets same indent (Test D)",
+			"oldLine": 1492,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Parent task ⏳ 2026-03-25 %% eid:fp01 %%",
+					"\t- [/] Child task ⏳ 2026-03-25 %% eid:fp02 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Parent task ⏳ 2026-03-25 [[My Project]] %% eid:fp01 %%",
+					"- [/] Child task ⏳ 2026-03-25 [[My Project]] %% eid:fp02 %%"
+				]
+			},
+			"after": {
+				"collection": null,
+				"log": [
+					"## Att göra idag",
+					"- [/] Parent task ⏳ 2026-03-25 [[My Project]] %% eid:fp01 %%",
+					"\t- [/] Child task ⏳ 2026-03-25 [[My Project]] %% eid:fp02 %%"
+				]
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 1510,
+					"message": "daglogg was updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1513,
+					"message": "child line found in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 1514,
+					"message": "child has indent=1 (one leading tab)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1515,
+					"message": "child not over-indented",
+					"dropped": null
+				},
+				{
+					"oldLine": 1516,
+					"message": "eid preserved after reindent",
+					"dropped": null
+				},
+				{
+					"oldLine": 1517,
+					"message": "content preserved after reindent",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "from-project: top-level task unindented in project → daglogg line becomes top-level (Test E)",
+			"oldLine": 1520,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Parent task ⏳ 2026-03-25 %% eid:fp03 %%",
+					"- [/] Child task ⏳ 2026-03-25 %% eid:fp04 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Parent task ⏳ 2026-03-25 [[My Project]] %% eid:fp03 %%",
+					"\t- [/] Child task ⏳ 2026-03-25 [[My Project]] %% eid:fp04 %%"
+				]
+			},
+			"after": {
+				"collection": null,
+				"log": [
+					"## Att göra idag",
+					"- [/] Parent task ⏳ 2026-03-25 [[My Project]] %% eid:fp03 %%",
+					"- [/] Child task ⏳ 2026-03-25 [[My Project]] %% eid:fp04 %%"
+				]
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 1538,
+					"message": "daglogg was updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1541,
+					"message": "child line found in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 1542,
+					"message": "child now at indent=0 (top-level)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1543,
+					"message": "eid preserved after reindent",
+					"dropped": null
+				},
+				{
+					"oldLine": 1544,
+					"message": "content preserved after reindent",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "from-project: indent roundtrip reflects project indent (Test F)",
+			"oldLine": 1547,
+			"direction": "from-project",
+			"editedSide": "collection",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Parent task ⏳ 2026-03-25 %% eid:fp05 %%",
+					"\t- [/] Child task ⏳ 2026-03-25 %% eid:fp06 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Parent task ⏳ 2026-03-25 [[My Project]] %% eid:fp05 %%",
+					"- [/] Child task ⏳ 2026-03-25 [[My Project]] %% eid:fp06 %%"
+				]
+			},
+			"after": {
+				"collection": null,
+				"log": [
+					"## Att göra idag",
+					"- [/] Parent task ⏳ 2026-03-25 [[My Project]] %% eid:fp05 %%",
+					"\t- [/] Child task ⏳ 2026-03-25 [[My Project]] %% eid:fp06 %%"
+				]
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 1567,
+					"message": "daglogg was updated",
+					"dropped": null
+				},
+				{
+					"oldLine": 1570,
+					"message": "child line found in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 1571,
+					"message": "child has indent=1 after roundtrip",
+					"dropped": null
+				},
+				{
+					"oldLine": 1572,
+					"message": "child not over-indented",
+					"dropped": null
+				},
+				{
+					"oldLine": 1573,
+					"message": "eid preserved",
+					"dropped": null
+				}
+			]
+		},
+		{
+			"name": "from-project: reparenting skipped — parent-eid mismatch → no reindent (Test G)",
+			"oldLine": 1576,
+			"direction": "from-project",
+			"editedSide": "unstated",
+			"before": {
+				"collection": [
+					"## Uppgifter",
+					"- [/] Parent A ⏳ 2026-03-25 %% eid:fp07 %%",
+					"\t- [/] Child task ⏳ 2026-03-25 %% eid:fp09 %%",
+					"- [/] Parent B ⏳ 2026-03-25 %% eid:fp08 %%"
+				],
+				"log": [
+					"## Att göra idag",
+					"- [/] Parent A ⏳ 2026-03-25 [[My Project]] %% eid:fp07 %%",
+					"- [/] Parent B ⏳ 2026-03-25 [[My Project]] %% eid:fp08 %%",
+					"\t- [/] Child task ⏳ 2026-03-25 [[My Project]] %% eid:fp09 %%"
+				]
+			},
+			"after": {
+				"collection": null,
+				"log": null
+			},
+			"namedDifferences": [],
+			"assertions": [
+				{
+					"oldLine": 1608,
+					"message": "child line found in daglogg",
+					"dropped": null
+				},
+				{
+					"oldLine": 1609,
+					"message": "child preserved at indent=1 (no reindent — Case D)",
+					"dropped": null
+				},
+				{
+					"oldLine": 1610,
+					"message": "child not over-indented",
+					"dropped": null
+				},
+				{
+					"oldLine": 1611,
+					"message": "eid preserved",
+					"dropped": null
+				}
+			]
+		}
+	]
+}

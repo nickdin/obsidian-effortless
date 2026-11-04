@@ -1,0 +1,9 @@
+{
+	"id": "effortless",
+	"name": "Effortless",
+	"version": "0.1.0",
+	"minAppVersion": "1.13.0",
+	"description": "Keep your tasks and your days in plain notes, inspired by the bullet journal method. A task you plan appears in the day's log and in its collection at once, and stays consistent in both. Every move it makes after that is yours.",
+	"author": "Nicklas Grandin",
+	"isDesktopOnly": false
+}

@@ -1,0 +1,38 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Effortless//Test fixture//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+UID:nameless-attendee@effortless.test
+DTSTAMP:20260901T120000Z
+DTSTART:20260908T090000Z
+DTEND:20260908T093000Z
+SUMMARY:No name given
+ORGANIZER;CN=Named Organiser:mailto:organiser@invented.test
+ATTENDEE:mailto:nameless@invented.test
+END:VEVENT
+BEGIN:VEVENT
+UID:no-organiser@effortless.test
+DTSTAMP:20260901T120000Z
+DTSTART:20260908T100000Z
+DTEND:20260908T103000Z
+SUMMARY:No organiser named
+ATTENDEE;CN=Solo Invented:mailto:solo@invented.test
+END:VEVENT
+BEGIN:VEVENT
+UID:no-attendees@effortless.test
+DTSTAMP:20260901T120000Z
+DTSTART:20260908T110000Z
+DTEND:20260908T113000Z
+SUMMARY:Nobody invited
+ORGANIZER;CN=Only Invented:mailto:only@invented.test
+END:VEVENT
+BEGIN:VEVENT
+UID:odd-organiser-address@effortless.test
+DTSTAMP:20260901T120000Z
+DTSTART:20260908T120000Z
+DTEND:20260908T123000Z
+SUMMARY:Organiser given as an odd address
+ORGANIZER;CN=Odd Invented:urn:uuid:not-a-mailto-address
+END:VEVENT
+END:VCALENDAR

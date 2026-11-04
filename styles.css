@@ -1,0 +1,1377 @@
+/* The settings screen. Every colour is one of Obsidian's own theme variables,
+   so the screen follows whatever theme the reader has installed rather than
+   assuming one. */
+
+.effortless-count {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	margin: var(--size-4-3) 0 var(--size-4-2);
+}
+
+.effortless-card {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	/* Each card sits in a row of Obsidian's own, which lays its children out
+	   in a line; without this a card is only as wide as its text, and
+	   a card with a short sentence came out narrower than the one above it. */
+	flex: 1;
+	margin-bottom: var(--size-4-2);
+	min-width: 0;
+	overflow: hidden;
+}
+
+.effortless-card-core {
+	border-left: 3px solid var(--interactive-accent);
+}
+
+.effortless-card-header {
+	/* Not centred: once the sentence wraps to two lines, the badge and the
+	   switch should stay level with the feature's name rather than drift down. */
+	align-items: flex-start;
+	display: flex;
+	gap: var(--size-4-2);
+	padding: var(--size-4-2) var(--size-4-3);
+}
+
+/* Only the core card's header binds a click handler to itself
+   (`renderCoreCard` in settingsTab.ts); a feature card's does not
+   (`renderFeatureCard`), so the pointer belongs on the whole row for the
+   former and only on its live children, below, for the latter. The
+   chevron and the text below each carry their own `cursor: pointer` now,
+   so this rule is what reaches the header's own padding and the gap
+   between them, in the core row — not the chevron or the text. */
+.effortless-card-core .effortless-card-header {
+	cursor: pointer;
+}
+
+.effortless-chevron {
+	/* The glyph stays 1em wide, but a thumb needs more than that to hit. The
+	   padding widens what a tap lands on, and the negative margin of the same
+	   size gives the space back, so the name beside it does not move and the
+	   row's height does not grow. `content-box` keeps the padding outside the
+	   1em rather than eating it.
+
+	   The padded box is 47 x 52px, but the card's `overflow: hidden` and the
+	   header's own padding clip its corners, so what actually answers a tap is
+	   35 x 45px — measured in the test Obsidian with `elementFromPoint`, on a
+	   card both open and shut, against a 15px glyph. */
+	box-sizing: content-box;
+	color: var(--text-muted);
+	cursor: pointer;
+	flex: none;
+	margin: calc(-1 * var(--size-4-4));
+	padding: var(--size-4-4);
+	width: 1em;
+}
+
+.effortless-card-text {
+	/* Opens and closes a feature card on its own (`text.onClickEvent` in
+	   `renderFeatureCard`), so it earns the pointer here rather than through
+	   the header's, which a feature card's does not carry. */
+	cursor: pointer;
+	flex: 1;
+	min-width: 0;
+}
+
+.effortless-card-name {
+	font-weight: var(--font-semibold);
+}
+
+/* The sentence wraps rather than being cut off with an ellipsis. It is the
+   whole reason the collapsed row was chosen, and the narrowest screen is where
+   an unavailable feature's reason matters most. `anywhere` rather than
+   `break-word` so that a long unbroken path breaks instead of pushing the
+   badge and the switch off the row. */
+.effortless-card-line {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	overflow-wrap: anywhere;
+	white-space: normal;
+}
+
+.effortless-badge {
+	border-radius: var(--radius-s);
+	flex: none;
+	font-size: var(--font-ui-smaller);
+	padding: 2px var(--size-4-2);
+}
+
+.effortless-badge-running {
+	background: var(--background-modifier-success);
+	color: var(--text-normal);
+}
+
+.effortless-badge-unconfigured {
+	background: var(--background-modifier-border);
+	color: var(--text-muted);
+}
+
+/* Standby and not-started wear the off badge on purpose; only the sentence tells
+   the three apart. */
+.effortless-badge-off,
+.effortless-badge-standby,
+.effortless-badge-notStarted {
+	background: transparent;
+	border: 1px solid var(--background-modifier-border);
+	color: var(--text-faint);
+}
+
+/* Not an error: this device simply cannot do it. Quiet, but not as faint as
+   off, because it is the answer a person is most likely to be looking for. */
+.effortless-badge-unavailable {
+	background: var(--background-modifier-border);
+	color: var(--text-muted);
+}
+
+.effortless-badge-failed {
+	background: var(--background-modifier-error);
+	color: var(--text-on-accent);
+}
+
+/* Obsidian's Setting draws its own row; inside the header it is only a switch. */
+.effortless-switch .setting-item {
+	border: none;
+	padding: 0;
+}
+
+.effortless-card-body {
+	border-top: 1px solid var(--background-modifier-border);
+	padding: 0 var(--size-4-3);
+}
+
+/* ---------------------------------------------------------------------- */
+/* The standing-problems section.                                          */
+
+/* A problem row sits on an Obsidian `Setting`, so it arrives with a row's
+   layout already. What it does not arrive with is any weight, and without
+   that it is indistinguishable from "Excluded folders" a few rows above it —
+   which is the one thing a section that exists to be believed cannot afford.
+
+   Additive on purpose: nothing here restates the row's own layout. Whether
+   `setClass` adds this class or replaces the row's classes is unsettled. If it replaces, the row loses Obsidian's shape but still
+   reads as a warning rather than as an ordinary setting. */
+.effortless-problem {
+	border-left: 3px solid var(--text-error);
+	padding-left: var(--size-4-3);
+}
+
+.effortless-problem .setting-item-name {
+	color: var(--text-error);
+}
+
+/* ---------------------------------------------------------------------- */
+/* The filename pattern the plugin cannot read.               */
+
+/* Inside the Filename row's own description, so it reads as something about
+   that answer rather than as a separate row. It uses the theme's own error
+   colour and nothing else: the sentence is what carries the meaning, and a
+   theme that has rethought its colours has already rethought this one. */
+.effortless-unreadable-pattern {
+	color: var(--text-error);
+	margin-top: var(--size-2-1);
+}
+
+/* ---------------------------------------------------------------------- */
+/* The collections list.                                                   */
+
+/* Hand-built rows rather than Obsidian `Setting`s, so every line of layout
+   they have is here. Without it the list is stacked text — a name, then a
+   count, then the next name, with nothing saying which count belongs to
+   which name. */
+.effortless-collections {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	margin-bottom: var(--size-4-3);
+}
+
+.effortless-collection {
+	/* Baseline rather than centre, so the name and its count sit on the same
+	   line of text even after a long name has wrapped. */
+	align-items: baseline;
+	border-top: 1px solid var(--background-modifier-border);
+	display: flex;
+	gap: var(--size-4-2);
+	justify-content: space-between;
+	padding: var(--size-4-1) var(--size-4-2);
+}
+
+/* The box already draws the line above the first row. */
+.effortless-collection:first-child {
+	border-top: none;
+}
+
+.effortless-collection-name {
+	/* A vault path can be longer than the pane is wide. It breaks rather than
+	   pushing the count off the end of the row. */
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.effortless-collection-count {
+	color: var(--text-muted);
+	/* Never wrapped: "12 open tasks" broken over two lines reads as two
+	   different numbers, and the count is the whole point of the row. */
+	flex: none;
+	font-size: var(--font-ui-smaller);
+	white-space: nowrap;
+}
+
+/* What stands in for the list when the vault has no collections in it. The
+   weight of the count line above the feature cards, because it is the same
+   kind of sentence. */
+.effortless-collections-empty {
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	margin-bottom: var(--size-4-3);
+}
+
+/* ---------------------------------------------------------------------- */
+/* The calendar sources.                                                   */
+
+.effortless-calendar-sources {
+	margin-bottom: var(--size-4-3);
+}
+
+/* One calendar's four rows, boxed. The rows are Obsidian `Setting`s and draw
+   the same way whichever calendar they belong to, so with nothing around
+   them two calendars are eight identical rows and the person has to count to
+   find where one ends. */
+.effortless-calendar-source {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	margin-bottom: var(--size-4-2);
+	padding: 0 var(--size-4-3);
+}
+
+/* The line under a calendar saying what it last did. `anywhere` because a
+   wrong address is quoted back inside it and a URL has nowhere to break. */
+.effortless-calendar-state {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	overflow-wrap: anywhere;
+	padding-bottom: var(--size-4-2);
+}
+
+/* A calendar account's rows, framed like a calendar's so one account's five
+   rows read as one group. */
+.effortless-calendar-account {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	margin-bottom: var(--size-4-2);
+	padding: 0 var(--size-4-3);
+}
+
+/* The line under *Fetch calendars*: what signing in came to. `anywhere` for
+   the same reason as the calendar's own line, an address quoted inside it. */
+.effortless-calendar-account-fetch {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	overflow-wrap: anywhere;
+	padding-bottom: var(--size-4-2);
+}
+
+/* The calendars the server listed, one switch each, set in from the
+   account's own rows so they read as its answer. */
+.effortless-calendar-account-calendars {
+	padding-left: var(--size-4-4);
+}
+
+/* ---------------------------------------------------------------------- */
+/* The cycling feature's own settings body.                   */
+
+.effortless-cycling-sequences {
+	margin-bottom: var(--size-4-3);
+}
+
+/* One sequence's rows, boxed. The rows are Obsidian `Setting`s and draw the
+   same way whichever sequence they belong to, so with nothing around them two
+   sequences are two identical rows and the person has to count to find where
+   one ends. The same reasoning boxes a calendar above. */
+.effortless-cycling-sequence {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	margin-bottom: var(--size-4-2);
+	padding: 0 var(--size-4-3);
+}
+
+/* The line under a sequence saying what it holds, and why a press would do
+   nothing where that is the case. `anywhere` because the symbols are quoted
+   back into it and a run of punctuation has nowhere to break. */
+.effortless-cycling-sequence-summary {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	overflow-wrap: anywhere;
+	padding-bottom: var(--size-4-2);
+}
+
+/* Why an emptied name was not stored, shown above the box being typed in so
+   that it does not push the box down the screen as it appears. It is empty
+   whenever there is nothing to say, and an empty element with padding would
+   leave a gap at the top of every sequence, so the padding sits on `:empty`'s
+   opposite rather than on the element itself. */
+.effortless-cycling-sequence-refusal:not(:empty) {
+	color: var(--text-warning);
+	font-size: var(--font-ui-smaller);
+	padding-top: var(--size-4-2);
+}
+
+/* What a symbol may be, said once under the heading rather than on every
+   sequence. It is a whole sentence rather than a hint, so it reads at the
+   same size as a row's description and not smaller. */
+.effortless-cycling-legend {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	padding-bottom: var(--size-4-2);
+}
+
+/* The symbols inside one sequence, one row each. */
+.effortless-cycling-symbols {
+	padding: var(--size-4-2) 0;
+}
+
+/* One symbol: what it is on the left, its three controls on the right. The
+   row is a flex line rather than a `Setting`, because a `Setting` puts its
+   name in a column wide enough for a sentence and there are only two
+   characters to put there. */
+.effortless-cycling-symbol {
+	align-items: center;
+	display: flex;
+	gap: var(--size-4-2);
+	padding: var(--size-2-1) 0;
+}
+
+/* Where the symbol sits and what it is. It takes the space the three buttons
+   do not, so the buttons line up down the list however long a meaning is. */
+.effortless-cycling-symbol-label {
+	flex: 1 1 auto;
+	overflow-wrap: anywhere;
+}
+
+/* An arrow, or the remove control. Sized so a finger can hit it: the whole
+   reason these are buttons rather than a drag handle is that the person may
+   be on a phone, and a target smaller than this is one a thumb misses. A disabled one is dimmed and takes no pointer, which is what
+   an arrow at the end of the list is. */
+.effortless-cycling-symbol-button {
+	background: var(--background-modifier-form-field);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	color: var(--text-normal);
+	cursor: pointer;
+	flex: 0 0 auto;
+	min-height: var(--size-4-8);
+	min-width: var(--size-4-8);
+	padding: 0 var(--size-4-2);
+}
+
+.effortless-cycling-symbol-button:disabled {
+	cursor: default;
+	opacity: 0.4;
+}
+
+/* Why a typed character cannot be a symbol, shown above the field being typed
+   in so that it does not push the field down the screen as it appears — the
+   same reasoning as the refusal above the name box. Empty whenever there is
+   nothing to say, so its padding sits on `:empty`'s opposite. */
+.effortless-cycling-symbol-refusal:not(:empty) {
+	color: var(--text-warning);
+	font-size: var(--font-ui-smaller);
+	padding-top: var(--size-4-2);
+}
+
+/* The five characters the plugin fixes a meaning to, offered beside the
+   field. They wrap rather than scroll: on a phone five labelled buttons do
+   not fit on one line, and a row that scrolls sideways hides the last of
+   them behind an edge nothing marks. */
+.effortless-cycling-fixed {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-2);
+	padding-bottom: var(--size-4-2);
+}
+
+/* The line introducing those five. */
+.effortless-cycling-fixed-line {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	flex: 1 0 100%;
+}
+
+/* One of the five. It carries its meaning as text rather than as a tooltip,
+   because a tooltip is not shown at all on a touch screen and these exist
+   for the person who is on one. */
+.effortless-cycling-fixed-button {
+	background: var(--background-modifier-form-field);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	color: var(--text-normal);
+	cursor: pointer;
+	font-size: var(--font-ui-smaller);
+	min-height: var(--size-4-8);
+	padding: 0 var(--size-4-2);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Date entry: the popup, and its own settings body.     */
+
+/* One row of the popup — the only one, since the feature offers exactly one
+   suggestion. Laid out in a row so the emoji, the phrase and the date sit on
+   one line however long the phrase is; it wraps rather than being cut off,
+   because the phrase is the whole point of showing it. */
+.effortless-date-entry {
+	align-items: baseline;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-1);
+}
+
+/* The kind's emoji. It carries the whole difference between a scheduled date
+   and a due one, so it is not dimmed the way the rest of the row's furniture
+   is. */
+.effortless-date-entry-emoji {
+	flex: 0 0 auto;
+}
+
+/* The phrase the date was read from — `tomorrow`, `nästa torsdag`. It is what
+   the person checks before pressing Enter, so it reads at full strength and
+   the date beside it is the quieter half. */
+.effortless-date-entry-phrase {
+	color: var(--text-normal);
+}
+
+/* The dot between the phrase and the date. Faint, because it is punctuation
+   rather than either of the two things it separates. */
+.effortless-date-entry-separator {
+	color: var(--text-faint);
+}
+
+/* The date exactly as it will be written into the line. */
+.effortless-date-entry-date {
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+}
+
+/* `...` — the popup saying "not yet". Faint and in the same monospaced face as
+   a date, so that the row keeps its shape as the date arrives in its place. */
+.effortless-date-entry-placeholder {
+	color: var(--text-faint);
+	font-family: var(--font-monospace);
+}
+
+/* The feature's own settings body: two rows, and the refusal between them. */
+.effortless-date-entry-settings {
+	margin-bottom: var(--size-4-3);
+}
+
+/* Why a trigger cannot be used — one being typed, or one stored in `data.json`
+   and shown as stored when the card draws — placed above the box so that it
+   does not push the box down the screen as it appears — the same
+   reasoning as the refusals on the cycling card. It is empty whenever there is
+   nothing to say, and an empty element with padding would leave a gap under the
+   language row, so the padding sits on `:empty`'s opposite rather than on the
+   element itself. */
+.effortless-date-entry-refusal:not(:empty) {
+	color: var(--text-warning);
+	font-size: var(--font-ui-smaller);
+	padding-top: var(--size-4-2);
+}
+
+/* ---------------------------------------------------------------------- */
+/* The day view.                                              */
+/* ---------------------------------------------------------------------- */
+/* Carried from the old day view's stylesheet, its classes renamed to this
+   plugin's prefix and every value still one of Obsidian's own variables. The
+   rules for clickable blocks, unresolved links and the bubble are not here
+   yet: nothing applies those classes until #628 does. */
+
+/* The grid: positioned so the gridlines, labels, track and now-line inside it
+   can be placed by their time. Its height is set on the element from the
+   span. */
+.effortless-day-view-grid {
+	--effortless-day-view-gutter-width: 56px;
+	position: relative;
+	margin: var(--size-4-2) 0;
+	border-left: 1px solid var(--background-modifier-border);
+}
+
+/* The band of all-day bars, above the grid and outside it. Full width rather
+   than indented to the time gutter: the gutter holds no label there, and an
+   empty 56px column would read as a label someone forgot to write.
+
+   The bottom margin is clearance for the grid's first hour label, not spacing.
+   A label is centred on its gridline, so the first one hangs half its height
+   above the grid, into whatever sits there. The two margins collapse, so this
+   value is the gap. The element is absent on a day with no all-day meeting. */
+.effortless-day-view-band {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-2-1);
+	margin: var(--size-4-2) 0 var(--size-4-4) 0;
+}
+
+/* Where the blocks go: from the right edge of the time gutter to the grid's
+   right edge, so a block can never overlap a label. */
+.effortless-day-view-track {
+	position: absolute;
+	left: var(--effortless-day-view-gutter-width);
+	right: 0;
+	top: 0;
+	bottom: 0;
+	/* Explicit, so an overlay setting pointer-events: none on the grid cannot
+	   stop a click reaching a block. */
+	pointer-events: auto;
+}
+
+/* A gridline every half hour, stronger on the hour. */
+.effortless-day-view-gridline {
+	position: absolute;
+	left: 0;
+	right: 0;
+	height: 0;
+	border-top: 1px solid var(--background-modifier-border);
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+.effortless-day-view-gridline-hour {
+	opacity: 1;
+}
+
+/* An hour's label in the gutter, centred on its gridline. It must never wrap:
+   a wrapped 08:00 is two lines tall and reaches twice as far above the grid,
+   into the band. `min-width` rather than `width`, so where the label's font
+   renders wider than the gutter — reading mode and live preview do not always
+   agree — the box grows rightwards under the track's empty left edge instead
+   of wrapping or spilling out to the left. */
+.effortless-day-view-time-label {
+	position: absolute;
+	left: 0;
+	transform: translateY(-50%);
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	background-color: var(--background-primary);
+	padding-left: 2px;
+	padding-right: var(--size-4-2);
+	white-space: nowrap;
+	min-width: calc(var(--effortless-day-view-gutter-width) - 2px - var(--size-4-2));
+	text-align: right;
+	pointer-events: none;
+	z-index: 2;
+}
+
+/* A timed block, placed and sized by its time. Its text is clipped rather than
+   the block made taller than the meeting. */
+.effortless-day-view-block {
+	position: absolute;
+	box-sizing: border-box;
+	padding: var(--size-4-1) var(--size-4-2);
+	background-color: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	overflow: hidden;
+	font-size: var(--font-ui-small);
+	line-height: 1.3;
+}
+
+.effortless-day-view-block-text {
+	color: var(--text-normal);
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* A bar is a block that has left the grid: it keeps every rule above, so the
+   two look alike by construction, and this undoes only the parts that assume a
+   place in the track. `position: static` is the one that matters — an
+   absolutely positioned bar would collapse into the band's corner. */
+.effortless-day-view-bar {
+	position: static;
+	display: flex;
+	align-items: baseline;
+	gap: var(--size-4-2);
+	width: 100%;
+	height: auto;
+}
+
+/* Lets the text shrink below its own width inside the bar, so its ellipsis
+   can fire. */
+.effortless-day-view-bar .effortless-day-view-block-text {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/* The line at the current time, on today's log only. */
+.effortless-day-view-now-line {
+	position: absolute;
+	left: 0;
+	right: 0;
+	height: 0;
+	border-top: 2px solid var(--text-accent);
+	pointer-events: none;
+	z-index: 1;
+}
+
+/* Hides the now-line while now is outside the grid's span, or once its note
+   stops being today's log. A class rather than a fixed inline style, which
+   Obsidian's community-plugin-list rules forbid. */
+.effortless-day-view-now-line--hidden {
+	display: none;
+}
+
+/* A block or bar whose click opens a meeting's note. It says so by the
+   pointer, not by the blue underline of a link, which on a block would only
+   be noise. */
+.effortless-day-view-block--clickable {
+	cursor: pointer;
+}
+
+/* A clickable block whose note does not exist yet: a click creates it. */
+.effortless-day-view-block--unresolved {
+	background-color: color-mix(in srgb, var(--background-secondary), transparent 40%);
+}
+
+/* The bubble, mounted on the document's body rather than in the block: live
+   preview draws the block inside a transformed element, which would measure a
+   fixed position against itself rather than the window. It lets the pointer
+   through on the laptop, where it only ever shows on a hover; on a phone,
+   where a tap on it opens the note, it takes the tap. */
+.effortless-day-view-bubble {
+	position: fixed;
+	max-width: 320px;
+	padding: var(--size-4-2);
+	background-color: var(--background-secondary);
+	color: var(--text-normal);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	box-shadow: var(--shadow-s);
+	font-size: var(--font-ui-small);
+	line-height: 1.3;
+	pointer-events: none;
+	z-index: 100;
+}
+
+.is-mobile .effortless-day-view-bubble {
+	pointer-events: auto;
+	cursor: pointer;
+}
+
+/* Hidden but still laid out, so its width can be measured before it is
+   placed. A class rather than an inline style, as for the now-line. */
+.effortless-day-view-bubble--hidden {
+	visibility: hidden;
+}
+
+/* Three boxes with one job: never let the view leave something out quietly.
+   The first two sit above the grid and list the rows that could not be read
+   and the rows the table never reached; the third sits above a block drawn as
+   written because no day could be read from it. The error colour is mixed down
+   towards transparent: at full strength it competes with the day itself. */
+.effortless-day-view-problems,
+.effortless-day-view-unread,
+.effortless-day-view-fallback {
+	margin: var(--size-4-2) 0;
+	padding: var(--size-4-2);
+	border: 1px solid var(--background-modifier-error);
+	border-radius: var(--radius-s);
+	background-color: color-mix(in srgb, var(--background-modifier-error), transparent 85%);
+	font-size: var(--font-ui-small);
+	line-height: 1.4;
+}
+
+.effortless-day-view-fallback,
+.effortless-day-view-problem-heading {
+	color: var(--text-error);
+	font-weight: 600;
+}
+
+.effortless-day-view-problem-heading {
+	margin-bottom: var(--size-4-1);
+}
+
+.effortless-day-view-problem-row + .effortless-day-view-problem-row {
+	margin-top: var(--size-4-1);
+}
+
+.effortless-day-view-problem-reason {
+	color: var(--text-normal);
+}
+
+/* The row exactly as written. Monospaced so it lines up with the source, and
+   wrapping rather than clipped — a row too long to fit is the one most likely
+   to hold the mistake. */
+.effortless-day-view-problem-source {
+	font-family: var(--font-monospace);
+	color: var(--text-muted);
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+/* The block's text as written, beneath the sentence saying why. Obsidian draws
+   it as Markdown; this only keeps it clear of the sentence. */
+.effortless-day-view-fallback-source {
+	margin-top: var(--size-4-2);
+}
+
+/* The feature's own settings body: one row. */
+.effortless-day-view-settings {
+	display: block;
+}
+
+/* ---------------------------------------------------------------------- */
+/* The checkbox states the cycling feature steps through.      */
+
+/* The author asked for the five states this plugin gives a meaning to — ` `,
+   `/`, `x`, `-`, `>` — to look different from each other whatever theme is
+   installed and whatever else is present, and also settled the question that
+   decision forces: where Effortless and a theme disagree, **Effortless wins**,
+   and the accepted cost is that someone who chose Minimal for its checkbox
+   icons stops seeing them for these five characters.
+
+   **The cascade, measured on the test vault at a cold start (Obsidian 1.13.7,
+   2026-09-08).** Stylesheets arrive in this order, and later wins at equal
+   weight:
+
+       CodeMirror's own  ->  app.css  ->  a plugin's styles.css  ->  the
+       theme  ->  the person's CSS snippets
+
+   So a theme loads *after* this file and a plain rule here would lose. Two
+   consequences shape everything below. The rules have to out-specify a theme
+   rather than merely state a look; and nothing here is `!important`, because
+   the person's own snippet is last in the order and can still overrule this
+   file with an ordinary rule. Reaching for `!important` would take that away
+   and would still lose to a theme that used it.
+
+   **The budget, measured rather than guessed.** The heaviest checkbox rule in
+   the three themes the ticket names is Minimal's
+   `li[data-task=">"] > p > input:checked`, which is (0,2,3); Obsidian's own is
+   `input[type="checkbox"]:checked::after`, (0,2,2) — the attribute and the
+   pseudo-class in the second column, `input` and the `::after` pseudo-element
+   in the third, since a pseudo-element weighs the same as an element there;
+   the Omarchy theme is a generated palette and draws no checkbox at all, which
+   is why every state looked the same there and why this ticket exists. Every
+   selector below is (0,3,0) or heavier, which is the least that clears
+   (0,2,3). A theme that went heavier still would win, and that is the stated
+   limit of this approach.
+
+   **Two views, two places the state is written.** In reading view Obsidian
+   puts `data-task` on the list item and leaves the input bare; in live preview
+   it puts it on the line *and* on the input. The empty state is written
+   differently in each — `data-task=""` in reading view, `data-task=" "` in
+   live preview — so both spellings appear below. Both were read back from the
+   running application rather than taken from documentation.
+
+   **Only these five characters are named.** A character the person added that
+   the plugin gives no meaning to matches nothing here and keeps whatever look
+   the theme gives it, which is the promise the ticket makes. */
+
+/* The box itself, for all five. Obsidian's own `:checked` fill and Minimal's
+   mask are both reset here, so every state starts from the same plain box and
+   its mark is drawn by `::after` below. */
+.task-list-item[data-task=""] > .task-list-item-checkbox,
+.task-list-item[data-task=""] > p > .task-list-item-checkbox,
+.task-list-item[data-task="/"] > .task-list-item-checkbox,
+.task-list-item[data-task="/"] > p > .task-list-item-checkbox,
+.task-list-item[data-task="x"] > .task-list-item-checkbox,
+.task-list-item[data-task="x"] > p > .task-list-item-checkbox,
+.task-list-item[data-task="-"] > .task-list-item-checkbox,
+.task-list-item[data-task="-"] > p > .task-list-item-checkbox,
+.task-list-item[data-task=">"] > .task-list-item-checkbox,
+.task-list-item[data-task=">"] > p > .task-list-item-checkbox,
+.HyperMD-task-line[data-task=" "] .task-list-item-checkbox,
+.HyperMD-task-line[data-task="/"] .task-list-item-checkbox,
+.HyperMD-task-line[data-task="x"] .task-list-item-checkbox,
+.HyperMD-task-line[data-task="-"] .task-list-item-checkbox,
+.HyperMD-task-line[data-task=">"] .task-list-item-checkbox {
+	appearance: none;
+	-webkit-appearance: none;
+	background-color: transparent;
+	background-image: none;
+	border: 1px solid var(--checkbox-border-color);
+	border-radius: var(--checkbox-radius);
+	mask-image: none;
+	-webkit-mask-image: none;
+	position: relative;
+	/* Measured, not guessed: Minimal turns the whole box a quarter turn for
+	   `[>]` (`input[data-task=">"]:checked { transform: rotate(90deg) }`), and
+	   without this reset the arrow drawn below came out pointing down. */
+	transform: none;
+}
+
+/* The mark each state draws inside that box. Shared frame only: the shape and
+   the colour are per state, so the five stay apart on a black-and-white screen
+   as well as on a colourful one. */
+.task-list-item[data-task="/"] > .task-list-item-checkbox::after,
+.task-list-item[data-task="/"] > p > .task-list-item-checkbox::after,
+.task-list-item[data-task="x"] > .task-list-item-checkbox::after,
+.task-list-item[data-task="x"] > p > .task-list-item-checkbox::after,
+.task-list-item[data-task="-"] > .task-list-item-checkbox::after,
+.task-list-item[data-task="-"] > p > .task-list-item-checkbox::after,
+.task-list-item[data-task=">"] > .task-list-item-checkbox::after,
+.task-list-item[data-task=">"] > p > .task-list-item-checkbox::after,
+.HyperMD-task-line[data-task="/"] .task-list-item-checkbox::after,
+.HyperMD-task-line[data-task="x"] .task-list-item-checkbox::after,
+.HyperMD-task-line[data-task="-"] .task-list-item-checkbox::after,
+.HyperMD-task-line[data-task=">"] .task-list-item-checkbox::after {
+	content: "";
+	display: block;
+	position: absolute;
+	background-color: transparent;
+	background-image: none;
+	mask-image: none;
+	-webkit-mask-image: none;
+	transform: none;
+}
+
+/* `[ ]` — to do. An empty box and nothing inside it. The box rule above is the
+   whole look; the state is unchecked, so Obsidian draws no mark of its own and
+   there is nothing to reset. It is named here so that the five states are five
+   rules rather than four and a silence. */
+.task-list-item[data-task=""] > .task-list-item-checkbox::after,
+.task-list-item[data-task=""] > p > .task-list-item-checkbox::after,
+.HyperMD-task-line[data-task=" "] .task-list-item-checkbox::after {
+	content: none;
+}
+
+/* `[/]` — in progress. The left half of the box filled, which reads as part
+   done without needing a second colour to say so. */
+.task-list-item[data-task="/"] > .task-list-item-checkbox::after,
+.task-list-item[data-task="/"] > p > .task-list-item-checkbox::after,
+.HyperMD-task-line[data-task="/"] .task-list-item-checkbox::after {
+	inset: 0;
+	background-image: linear-gradient(
+		to right,
+		var(--checkbox-color) 0 50%,
+		transparent 50% 100%
+	);
+}
+
+/* `[x]` — done. The filled box and the tick, which is the one state that keeps
+   the shape people already read as finished. Drawn from two borders rather
+   than an icon, so it needs no font and no image. */
+.task-list-item[data-task="x"] > .task-list-item-checkbox,
+.task-list-item[data-task="x"] > p > .task-list-item-checkbox,
+.HyperMD-task-line[data-task="x"] .task-list-item-checkbox {
+	background-color: var(--checkbox-color);
+	border-color: var(--checkbox-color);
+}
+
+.task-list-item[data-task="x"] > .task-list-item-checkbox::after,
+.task-list-item[data-task="x"] > p > .task-list-item-checkbox::after,
+.HyperMD-task-line[data-task="x"] .task-list-item-checkbox::after {
+	top: 8%;
+	left: 32%;
+	width: 26%;
+	height: 52%;
+	border: 2px solid var(--checkbox-marker-color);
+	border-top: none;
+	border-left: none;
+	transform: rotate(45deg);
+}
+
+/* `[-]` — cancelled. A bar straight across, in the faintest text colour the
+   theme has: struck out rather than finished. */
+.task-list-item[data-task="-"] > .task-list-item-checkbox::after,
+.task-list-item[data-task="-"] > p > .task-list-item-checkbox::after,
+.HyperMD-task-line[data-task="-"] .task-list-item-checkbox::after {
+	top: calc(50% - 1px);
+	left: 20%;
+	width: 60%;
+	height: 2px;
+	background-color: var(--text-faint);
+}
+
+/* `[>] `— forwarded. A triangle pointing the way the character does, drawn
+   from three borders so that it too needs no image. */
+.task-list-item[data-task=">"] > .task-list-item-checkbox::after,
+.task-list-item[data-task=">"] > p > .task-list-item-checkbox::after,
+.HyperMD-task-line[data-task=">"] .task-list-item-checkbox::after {
+	top: calc(50% - var(--checkbox-size) * 0.25);
+	left: 34%;
+	width: 0;
+	height: 0;
+	border-style: solid;
+	border-width: calc(var(--checkbox-size) * 0.25) 0 calc(var(--checkbox-size) * 0.25)
+		calc(var(--checkbox-size) * 0.35);
+	border-color: transparent transparent transparent var(--text-muted);
+}
+
+/* ---------------------------------------------------------------------- */
+/* The seventeen symbols outside the five, behind a switch.    */
+
+/* The author's own extra symbols — `? i I " * k b`, plus `!` and `<` — and the
+   rest of what the widely used convention already gives a look: the Minimal
+   theme's own alternate-checkbox set, seventeen characters, measured from its
+   own released CSS (`kepano/obsidian-minimal` 9.1.0, `theme.css` "Checklist
+   icons" section) rather than guessed. They are still an ordinary open task
+   everywhere else — the cycling, the sync pairing and every reader read them
+   exactly as `[ ]` — so this is a look and never a meaning.
+
+   **Behind a switch, unlike the five.** Minimal draws these seventeen itself,
+   and measured against the same released CSS its heaviest rule for them is
+   (0,3,3) — a `.theme-dark`-qualified rule for `?`, `"`, `i` and `S` — one class-
+   level part heavier than the (0,2,3) #294 measured for the five. Clearing that
+   with an unconditional rule would need the same specificity floor this file
+   already holds every checkbox rule to (below), which would then also clear
+   Minimal's lighter (0,2,3) rule for the other thirteen — so an unconditional
+   rule cannot lose to Minimal for any of the seventeen while this file's own
+   floor test keeps checking every rule in it, the five included. Effortless does
+   not read which theme is active so the choice cannot be made
+   for the person automatically; `.effortless-symbol-look` is the switch's whole
+   footprint here, toggled on `<body>` by the checkbox-cycling settings card, on
+   by default. Without the class every selector below matches nothing, and the
+   theme — Minimal or none — draws these seventeen exactly as it always did.
+
+   **The look is the character itself**, bold and coloured, centred on a plain
+   reset box — not a drawn shape, because seventeen shapes distinct from each
+   other at this size is not a budget five has to spend. The colour cycles a
+   fixed eight-colour set so that the three easily confused letters — `l`, `I`,
+   `i` — never share one: `l` is blue, `I` red, `i` purple. */
+
+/* The box itself, reset the same way the five's is. */
+.effortless-symbol-look .task-list-item[data-task="<"] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="<"] > p > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="?"] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="?"] > p > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="!"] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="!"] > p > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task='"'] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task='"'] > p > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="*"] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="*"] > p > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="l"] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="l"] > p > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="i"] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="i"] > p > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="S"] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="S"] > p > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="I"] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="I"] > p > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="f"] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="f"] > p > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="k"] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="k"] > p > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="u"] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="u"] > p > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="d"] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="d"] > p > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="w"] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="w"] > p > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="p"] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="p"] > p > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="c"] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="c"] > p > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="b"] > .task-list-item-checkbox,
+.effortless-symbol-look .task-list-item[data-task="b"] > p > .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task="<"] .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task="?"] .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task="!"] .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task='"'] .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task="*"] .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task="l"] .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task="i"] .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task="S"] .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task="I"] .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task="f"] .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task="k"] .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task="u"] .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task="d"] .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task="w"] .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task="p"] .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task="c"] .task-list-item-checkbox,
+.effortless-symbol-look .HyperMD-task-line[data-task="b"] .task-list-item-checkbox {
+	appearance: none;
+	-webkit-appearance: none;
+	background-color: transparent;
+	background-image: none;
+	border: 1px solid var(--checkbox-border-color);
+	border-radius: var(--checkbox-radius);
+	mask-image: none;
+	-webkit-mask-image: none;
+	position: relative;
+	transform: none;
+}
+
+/* The frame the glyph shares. Shape is one flex-centred character; colour and
+   which character are per symbol, below. */
+.effortless-symbol-look .task-list-item[data-task="<"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="<"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="?"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="?"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="!"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="!"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task='"'] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task='"'] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="*"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="*"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="l"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="l"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="i"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="i"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="S"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="S"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="I"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="I"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="f"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="f"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="k"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="k"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="u"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="u"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="d"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="d"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="w"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="w"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="p"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="p"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="c"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="c"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="b"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="b"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="<"] .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="?"] .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="!"] .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task='"'] .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="*"] .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="l"] .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="i"] .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="S"] .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="I"] .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="f"] .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="k"] .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="u"] .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="d"] .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="w"] .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="p"] .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="c"] .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="b"] .task-list-item-checkbox::after {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-family: var(--font-monospace);
+	font-weight: 700;
+	font-size: calc(var(--checkbox-size) * 0.65);
+	line-height: 1;
+	background-color: transparent;
+	background-image: none;
+	mask-image: none;
+	-webkit-mask-image: none;
+	transform: none;
+}
+
+/* `[<]` */
+.effortless-symbol-look .task-list-item[data-task="<"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="<"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="<"] .task-list-item-checkbox::after {
+	content: "<";
+	color: var(--color-red);
+}
+
+/* `[?]` */
+.effortless-symbol-look .task-list-item[data-task="?"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="?"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="?"] .task-list-item-checkbox::after {
+	content: "?";
+	color: var(--color-orange);
+}
+
+/* `[!]` */
+.effortless-symbol-look .task-list-item[data-task="!"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="!"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="!"] .task-list-item-checkbox::after {
+	content: "!";
+	color: var(--color-yellow);
+}
+
+/* `["]` */
+.effortless-symbol-look .task-list-item[data-task='"'] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task='"'] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task='"'] .task-list-item-checkbox::after {
+	content: '"';
+	color: var(--color-green);
+}
+
+/* `[*]` */
+.effortless-symbol-look .task-list-item[data-task="*"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="*"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="*"] .task-list-item-checkbox::after {
+	content: "*";
+	color: var(--color-cyan);
+}
+
+/* `[l]` */
+.effortless-symbol-look .task-list-item[data-task="l"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="l"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="l"] .task-list-item-checkbox::after {
+	content: "l";
+	color: var(--color-blue);
+}
+
+/* `[i]` */
+.effortless-symbol-look .task-list-item[data-task="i"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="i"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="i"] .task-list-item-checkbox::after {
+	content: "i";
+	color: var(--color-purple);
+}
+
+/* `[S]` */
+.effortless-symbol-look .task-list-item[data-task="S"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="S"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="S"] .task-list-item-checkbox::after {
+	content: "S";
+	color: var(--color-pink);
+}
+
+/* `[I]` */
+.effortless-symbol-look .task-list-item[data-task="I"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="I"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="I"] .task-list-item-checkbox::after {
+	content: "I";
+	color: var(--color-red);
+}
+
+/* `[f]` */
+.effortless-symbol-look .task-list-item[data-task="f"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="f"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="f"] .task-list-item-checkbox::after {
+	content: "f";
+	color: var(--color-orange);
+}
+
+/* `[k]` */
+.effortless-symbol-look .task-list-item[data-task="k"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="k"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="k"] .task-list-item-checkbox::after {
+	content: "k";
+	color: var(--color-yellow);
+}
+
+/* `[u]` */
+.effortless-symbol-look .task-list-item[data-task="u"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="u"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="u"] .task-list-item-checkbox::after {
+	content: "u";
+	color: var(--color-green);
+}
+
+/* `[d]` */
+.effortless-symbol-look .task-list-item[data-task="d"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="d"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="d"] .task-list-item-checkbox::after {
+	content: "d";
+	color: var(--color-cyan);
+}
+
+/* `[w]` */
+.effortless-symbol-look .task-list-item[data-task="w"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="w"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="w"] .task-list-item-checkbox::after {
+	content: "w";
+	color: var(--color-blue);
+}
+
+/* `[p]` */
+.effortless-symbol-look .task-list-item[data-task="p"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="p"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="p"] .task-list-item-checkbox::after {
+	content: "p";
+	color: var(--color-purple);
+}
+
+/* `[c]` */
+.effortless-symbol-look .task-list-item[data-task="c"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="c"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="c"] .task-list-item-checkbox::after {
+	content: "c";
+	color: var(--color-pink);
+}
+
+/* `[b]` */
+.effortless-symbol-look .task-list-item[data-task="b"] > .task-list-item-checkbox::after,
+.effortless-symbol-look .task-list-item[data-task="b"] > p > .task-list-item-checkbox::after,
+.effortless-symbol-look .HyperMD-task-line[data-task="b"] .task-list-item-checkbox::after {
+	content: "b";
+	color: var(--color-red);
+}
+
+/* A ribbon icon whose feature is switched off. Obsidian's ribbon cannot drop an
+   item, and redraws the bar from its own list, setting each element's inline
+   `display` as it goes; `!important` is what outranks that. */
+.effortless-ribbon-icon-withdrawn {
+	display: none !important;
+}
+
+/* Review's list rows. The sidebar is narrow, so the date and the name share one
+   line and the counts get their own beneath, none wrapping into the next. Keyed
+   on the rows' `data-review-*` attributes, which are what a test or a drive
+   reads them by; the file-tree classes on the elements stay Obsidian's own. */
+[data-review-row] > .tree-item-self {
+	flex-wrap: wrap;
+}
+
+[data-review-row] [data-review-field="date"] {
+	white-space: nowrap;
+	margin-right: var(--size-4-2);
+}
+
+[data-review-row] .tree-item-flair-outer {
+	flex-basis: 100%;
+	gap: var(--size-4-2);
+}
+
+/* Review's "Mark as processed" button: on a line of its own under the counts (the
+   row wraps, and the counts line takes the full width), small enough for the
+   narrow sidebar. */
+[data-review-row] [data-review-action="mark-processed"] {
+	margin-top: var(--size-2-2);
+	height: auto;
+	padding: var(--size-2-1) var(--size-4-2);
+	font-size: var(--font-ui-smaller);
+}
+
+/* Review's followed tasks: the part below the waiting notes. A heading, then each
+   person over the tasks that name them. Each row is Obsidian's own file-tree row,
+   the words on a line of their own and the date and the note's name beneath,
+   none wrapping into the next, as the waiting notes' rows are. Keyed on the
+   `data-review-*` attributes a test or a drive reads. */
+[data-review-followed] {
+	margin-top: var(--size-4-3);
+}
+
+[data-review-followed] [data-review-followed-heading] {
+	font-weight: var(--font-semibold);
+}
+
+[data-review-followed] [data-review-field="person"] {
+	margin-top: var(--size-4-2);
+	color: var(--text-muted);
+}
+
+[data-review-followed-row] > .tree-item-self {
+	flex-wrap: wrap;
+}
+
+[data-review-followed-row] .tree-item-flair-outer {
+	flex-basis: 100%;
+	gap: var(--size-4-2);
+}
+
+/* Review's chain: the strip above the list. A month of days in seven columns,
+   Monday first, each cell the day's number over one small mark per routine; the
+   run counts above and the month's arrows between. Sized for the narrow
+   sidebar and the phone: cells shrink with the width and never scroll
+   sideways. Keyed on the `data-review-*` attributes a test or a drive reads. */
+.effortless-review-chain {
+	padding: var(--size-4-2) var(--size-4-3);
+	border-bottom: var(--border-width) solid var(--background-modifier-border);
+}
+
+.effortless-review-chain [data-review-runs] {
+	display: flex;
+	gap: var(--size-4-4);
+	font-weight: var(--font-semibold);
+}
+
+.effortless-review-chain [data-review-nav] {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin: var(--size-2-2) 0;
+}
+
+.effortless-review-chain [data-review-arrow] {
+	height: auto;
+	padding: var(--size-2-1) var(--size-4-2);
+}
+
+.effortless-review-chain [data-review-grid] {
+	display: grid;
+	grid-template-columns: repeat(7, minmax(0, 1fr));
+	gap: var(--size-2-1);
+	text-align: center;
+	font-size: var(--font-ui-smaller);
+}
+
+.effortless-review-chain [data-review-weekday] {
+	color: var(--text-muted);
+}
+
+.effortless-review-chain [data-review-day] {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-height: 2.6em;
+	cursor: pointer;
+	border-radius: var(--radius-s);
+}
+
+.effortless-review-chain [data-review-day]:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.effortless-review-chain [data-review-marks] {
+	display: flex;
+	justify-content: center;
+	gap: var(--size-2-1);
+}
+
+.effortless-review-chain [data-review-mark] {
+	line-height: 1;
+	min-width: 1em;
+	min-height: 1em;
+}
+
+.effortless-review-chain [data-review-mark][aria-label$="kept"] {
+	color: var(--text-success);
+}
+
+.effortless-review-chain [data-review-mark][aria-label$="missed"] {
+	color: var(--text-error);
+}
+
+/* The plugin's own bookkeeping properties, out of sight in the properties box
+   above a note: which meeting a note belongs to, whether it was offered,
+   whether the person has written in it, and which diary section built a day's
+   log. They stay in the frontmatter, unchanged, and source mode still shows
+   them; only their rows are not drawn. Each is named exactly, never by
+   prefix, so a property the person calls `effortless-notes` still shows.
+   Obsidian draws every row as `.metadata-property` carrying
+   `data-property-key`, in reading view and live preview alike; that is its
+   markup rather than a published API, checked on Obsidian 1.14.4
+   (docs/acceptance-shots/issue-1208-drive.txt). The names are the constants
+   IDENTITY_FIELD, OFFERED_FIELD, WRITTEN_FIELD and BUILT_DIARY_FIELD, and
+   bookkeepingProperties.test.ts fails when this list and theirs differ. */
+
+.metadata-property[data-property-key="effortless-meeting"],
+.metadata-property[data-property-key="effortless-offered"],
+.metadata-property[data-property-key="effortless-written"],
+.metadata-property[data-property-key="effortless-built-diary"] {
+	display: none;
+}
+
+/* A note whose properties are all bookkeeping would otherwise keep an empty
+   box with only its heading. The box is hidden when it holds one of the four
+   and no row of any other name. The first half, "holds one of the four", keeps
+   any box with no rows at all as Obsidian draws it; on 1.14.4 Obsidian draws
+   no box for an empty frontmatter anyway, so no drive has shown it changing
+   anything, and it is there so this rule never hides a box it was not written
+   for. Adding a property to a
+   note whose box is hidden is Obsidian's own "Add file property" command. */
+
+.metadata-container:has(
+	.metadata-property[data-property-key="effortless-meeting"],
+	.metadata-property[data-property-key="effortless-offered"],
+	.metadata-property[data-property-key="effortless-written"],
+	.metadata-property[data-property-key="effortless-built-diary"]
+):not(:has(.metadata-property:not(
+	[data-property-key="effortless-meeting"],
+	[data-property-key="effortless-offered"],
+	[data-property-key="effortless-written"],
+	[data-property-key="effortless-built-diary"]
+))) {
+	display: none;
+}

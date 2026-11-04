@@ -1,0 +1,16 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Effortless//Test fixture//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+UID:invited@effortless.test
+DTSTAMP:20260901T120000Z
+DTSTART:20260908T090000Z
+DTEND:20260908T100000Z
+SUMMARY:Planning session
+ORGANIZER;CN=Ada Invented:mailto:ada@invented.test
+ATTENDEE;CN=Bea Invented:mailto:bea@invented.test
+ATTENDEE;CN=Cleo Invented:mailto:cleo@invented.test
+ATTENDEE;CN=Dax Invented:mailto:dax@invented.test
+END:VEVENT
+END:VCALENDAR

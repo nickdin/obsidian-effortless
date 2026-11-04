@@ -1,0 +1,60 @@
+# Cuts a draft GitHub release when a version tag is pushed.
+#
+# The Obsidian community directory installs a plugin from the release whose tag
+# matches manifest.json's `version` exactly, reading main.js, manifest.json and
+# styles.css from that release's assets; without styles.css the plugin installs
+# unstyled. The tag is therefore the contract: push `1.2.3`,
+# not `v1.2.3`.
+#
+# The release is left as a draft on purpose, so the assets can be checked before
+# anyone can install them.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+
+      - name: Install
+        run: npm ci
+
+      # A red suite stops the draft release. Every guard this repo has is a
+      # test — the platform walk, the minAppVersion floor, the ES2018 list —
+      # and a tag is the one moment the plugin becomes installable, so this is
+      # where they have to be run. Without it the person deciding whether to
+      # publish the draft has no signal to read.
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Check the tag matches manifest.json
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          manifest=$(node -p "require('./manifest.json').version")
+          if [ "$tag" != "$manifest" ]; then
+            echo "Tag $tag does not match manifest.json version $manifest." >&2
+            exit 1
+          fi
+
+      - name: Create the draft release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          gh release create "$tag" --title="$tag" --draft main.js manifest.json styles.css

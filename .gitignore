@@ -1,0 +1,11 @@
+node_modules/
+main.js
+*.js.map
+
+# Claude Code, per-machine. Anything tracked under .claude/ is deliberate.
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/worktrees/
+
+# Python byte-code cache, written when scripts/trace-cost.py is imported
+__pycache__/

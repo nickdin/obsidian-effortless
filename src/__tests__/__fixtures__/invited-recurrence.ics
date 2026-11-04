@@ -1,0 +1,25 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Effortless//Test fixture//EN
+CALSCALE:GREGORIAN
+BEGIN:VEVENT
+UID:invited-series@effortless.test
+DTSTAMP:20260901T120000Z
+DTSTART:20260907T090000Z
+DTEND:20260907T093000Z
+RRULE:FREQ=DAILY;COUNT=3
+SUMMARY:Daily sync
+ORGANIZER;CN=Series Owner:mailto:owner@invented.test
+ATTENDEE;CN=Series Guest:mailto:guest@invented.test
+END:VEVENT
+BEGIN:VEVENT
+UID:invited-series@effortless.test
+DTSTAMP:20260901T120000Z
+RECURRENCE-ID:20260908T090000Z
+DTSTART:20260908T100000Z
+DTEND:20260908T103000Z
+SUMMARY:Daily sync, moved to ten
+ORGANIZER;CN=Series Owner:mailto:owner@invented.test
+ATTENDEE;CN=Override Guest:mailto:override-guest@invented.test
+END:VEVENT
+END:VCALENDAR

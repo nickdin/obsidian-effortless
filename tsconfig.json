@@ -1,0 +1,55 @@
+{
+	// The language floor is ES2018, and it is stated twice on purpose: `target`
+	// rewrites newer syntax down to it, and `lib` says which library calls exist.
+	//
+	// Why ES2018: the plugin has to run in the WebView of an old iOS, and the
+	// Obsidian mobile guidance this repo works from names iOS below 16.4 as the
+	// version that cannot run a regex lookbehind
+	// (docs/research/obsidian-publishing-requirements.md, "Mobile support").
+	// ES2018 is the conservative floor that sits under all of that.
+	//
+	// The compiler is not what enforces this floor, and that is a decision rather
+	// than a gap. `"types": ["node"]` pulls @types/node in, and its declarations
+	// reference newer library versions, so the library list is widened past `lib`
+	// and the compiler does not report a post-floor call. Narrowing `types` would
+	// need nine test files to stop reading `node:fs`, `process` and `__dirname`,
+	// and `package.json` to run two compiler passes. The author weighed that against
+	// a test on 2026-09-07 and chose the test.
+	//
+	// So the floor is guarded in src/__tests__/platform.test.ts, by the pattern
+	// list `afterTheFloor`, run over every shipped file that test's own
+	// whole-tree walk finds. A module added tomorrow is covered the
+	// day it arrives.
+	//
+	// That list holds two kinds of pattern, and saying only the first sent a
+	// reader to the wrong conclusion. Most entries are post-floor
+	// library calls, which are what widening `types` hid from the compiler. The
+	// rest is the syntax `target` does not rewrite: the contents of a
+	// regular-expression literal are a runtime value the compiler never touches,
+	// so a lookbehind written in one ships exactly as typed however low `target`
+	// is set. The lookbehind named above is therefore guarded by that list and
+	// not by `target`. `afterTheFloor`'s own note says which entries are which;
+	// nothing is counted here, so adding a pattern cannot make this comment
+	// false.
+	//
+	// The floor is about what ships. Test files are inside `include` so that they
+	// are type-checked, but they are bundled into nothing and run on Node, so a
+	// post-floor call in a test is not a mobile failure.
+	"compilerOptions": {
+		"target": "ES2018",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"lib": ["DOM", "ES2018"],
+		"strict": true,
+		"noImplicitAny": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noImplicitOverride": true,
+		"sourceMap": true,
+		"inlineSources": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"types": ["node"]
+	},
+	"include": ["src/**/*.ts"]
+}
