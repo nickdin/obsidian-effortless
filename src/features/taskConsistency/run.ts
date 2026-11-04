@@ -47,6 +47,7 @@ import type { TaskLine } from "../../core/taskLine";
 import { dailyLogPath } from "../../core/vaultLayout";
 import { completeInCollection } from "./complete";
 import { copyIn } from "./copyIn";
+import { finishUnpaired } from "./finishUnpaired";
 import { collectionLinktextOf, locatePairedLine } from "./jump";
 import { readMarker, snapshotOf, writeMarker } from "./marker";
 import type { SyncedSnapshot } from "./marker";
@@ -187,7 +188,7 @@ function repeatReportOf(left: LeftAlone, collection: Collection): { key: string;
  * so its key stands for as long as the fault does. A finished line with
  * an unreadable rule is moved under the completed-tasks heading in the same
  * run, and `reconcileAll` leaves it out of the answer, so its key clears in
- * that run.
+ * that run, paired or not.
  */
 function reportRepeatProblems(problems: RunProblems, collection: Collection, rounded: RoundResult): void {
 	const wanted = new Map<string, string>();
@@ -437,8 +438,9 @@ function reconcileAgainstOldLog(
  * (both split, the log possibly already touched by roll-over and the
  * collection by the sync against an earlier log; copy-in runs after this),
  * gives every finished recurring line its next round through the round step,
- * and moves a finished pairing to the completed-tasks heading once both sides
- * agree it is done or cancelled.
+ * moves a finished pairing to the completed-tasks heading once both sides
+ * agree it is done or cancelled, and then moves every finished task no log
+ * ever paired the same way (`finishUnpaired.ts`, #1261).
  *
  * Every clash found is reported through `problems`, keyed by eid; every
  * pairing checked and found *not* to be a clash has that same key cleared,
@@ -481,23 +483,35 @@ function reconcileAll(
 	// Pairings left untouched this run, kept out of the round step as well.
 	const untouched = new Set<string>(heldEids);
 
+	// One pairing as the two notes hold it now, and what syncing it answers;
+	// null when the collection carries no line for it.
+	const readPairing = (eid: string) => {
+		const collectionIndex = locatePairedLine(collection.join("\n"), eid);
+		if (collectionIndex === null) return null;
+		const collectionLine = collection[collectionIndex];
+		const logIndex = locateLiveLogLine(log.join("\n"), eid);
+		const logLine = logIndex === null ? null : log[logIndex];
+		const marker = readMarker(requireTaskLine(collectionLine));
+		const lastSynced: SyncedSnapshot | null = marker === null ? null : { hash: marker.hash };
+		return { collectionIndex, collectionLine, logIndex, logLine, lastSynced, result: syncPairing(collectionLine, logLine, lastSynced) };
+	};
+
 	// One pass over every paired line: syncs it, and moves a finished one that
 	// does not repeat. Answers the finished recurring lines it held back.
 	const syncPairs = (): string[] => {
 		const recurring: string[] = [];
+		// Every pairing that clashes is held before anything moves: the walk
+		// below meets a parent before its subtasks, and a move made before a
+		// subtask's clash was found would carry it along and rewrite it.
 		for (const eid of markedEids(collection.join("\n"))) {
 			if (heldEids.has(eid)) continue;
-			const collectionIndex = locatePairedLine(collection.join("\n"), eid);
-			if (collectionIndex === null) continue;
-			const collectionLine = collection[collectionIndex];
-
-			const logIndex = locateLiveLogLine(log.join("\n"), eid);
-			const logLine = logIndex === null ? null : log[logIndex];
-
-			const marker = readMarker(requireTaskLine(collectionLine));
-			const lastSynced: SyncedSnapshot | null = marker === null ? null : { hash: marker.hash };
-
-			const result = syncPairing(collectionLine, logLine, lastSynced);
+			if (readPairing(eid)?.result.clash === true) untouched.add(eid);
+		}
+		for (const eid of markedEids(collection.join("\n"))) {
+			if (heldEids.has(eid)) continue;
+			const pairing = readPairing(eid);
+			if (pairing === null) continue;
+			const { collectionIndex, collectionLine, logIndex, logLine, lastSynced, result } = pairing;
 
 			if (result.clash) {
 				// logLine is never null on a clash: reconcilePair only clashes once
@@ -527,7 +541,7 @@ function reconcileAll(
 					recurring.push(eid);
 					continue;
 				}
-				const completed = completeInCollection(collection.join("\n"), eid, layout);
+				const completed = completeInCollection(collection.join("\n"), eid, layout, untouched);
 				if (completed.moved) collection = completed.collection === "" ? [] : completed.collection.split("\n");
 			}
 		}
@@ -559,7 +573,7 @@ function reconcileAll(
 	const finished = new Set<string>();
 	for (const eid of recurring) {
 		if (undated.has(eid)) continue;
-		const completed = completeInCollection(collection.join("\n"), eid, layout);
+		const completed = completeInCollection(collection.join("\n"), eid, layout, untouched);
 		if (!completed.moved) continue;
 		collection = completed.collection === "" ? [] : completed.collection.split("\n");
 		finished.add(eid);
@@ -573,11 +587,25 @@ function reconcileAll(
 		return marker === null || !finished.has(marker.eid);
 	});
 
-	// Moving a recurring line carries its subtree's open subtasks to done in
-	// the collection only, and a subtask paired on its own has a log copy that
-	// still reads open: one more pass lets the log follow in this run rather
-	// than in the next one, which the plugin's own write would trigger.
-	if (recurring.length > 0) syncPairs();
+	// Every finished task under the tasks heading that no day's log ever
+	// paired moves too, by the same move; paired lines and lines whose 🔁 rule
+	// reads are left to the two paths above.
+	const unpaired = finishUnpaired(collection.join("\n"), layout, untouched);
+	if (unpaired.moved.length > 0) collection = unpaired.collection === "" ? [] : unpaired.collection.split("\n");
+	// A finished, unpaired line whose rule cannot be read is among them, and the
+	// round step named it before it went: no longer a problem standing under the
+	// tasks heading, as #1254 has it for a paired one. It carries no eid, so it
+	// is known by its text as the move found it; a paired line's text holds its
+	// marker, so it can never match one.
+	const movedUnpaired = new Set(unpaired.moved);
+	const stillStanding = stillLeftAlone.filter((left) => !movedUnpaired.has(left.text));
+
+	// Moving a recurring or an unpaired line carries its subtree's open
+	// subtasks to done in the collection only, and a subtask paired on its own
+	// has a log copy that still reads open: one more pass lets the log follow
+	// in this run rather than in the next one, which the plugin's own write
+	// would trigger.
+	if (recurring.length > 0 || unpaired.moved.length > 0) syncPairs();
 
 	// #848: a log line naming this collection whose eid has no matching
 	// collection line — driven by the log's own marked lines rather than the
@@ -601,14 +629,15 @@ function reconcileAll(
 		}
 	}
 
-	return { collectionLines: collection, logLines: log, rounded: { ...rounded, leftAlone: stillLeftAlone } };
+	return { collectionLines: collection, logLines: log, rounded: { ...rounded, leftAlone: stillStanding } };
 }
 
 /**
  * One run over `collection`: rolls over the most recent earlier log still
  * carrying a live pairing into today's, reconciles every live pairing
- * and brings each finished recurring line its next round, copies in
- * every newly due task, and writes whichever files actually changed.
+ * and brings each finished recurring line its next round, moves every
+ * finished task no log ever paired under the completed-tasks heading,
+ * copies in every newly due task, and writes whichever files actually changed.
  *
  * **The collection is written first, and the log write is queued only once
  * it is known to have landed**: a refused collection write reports

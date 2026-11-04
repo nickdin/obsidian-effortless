@@ -498,3 +498,24 @@ describe("roundStep on a note with Windows line endings", () => {
 		);
 	});
 });
+
+describe("roundStep: a finished recurring line whose subtree holds a held pairing waits", () => {
+	it("writes no round and moves nothing, and reports no fault for it", () => {
+		// If the step checked only the top line against `skipEids`, it would
+		// write a fresh round, move the done line, and set the held subtask to
+		// `[x]` on its way under the completed-tasks heading.
+		const input = [
+			TASKS,
+			"- [x] Water the ferns 🔁 every week ⏳ 2026-09-20",
+			"\t" + marked("- [/] Fill the can", "can-1"),
+			"",
+		].join("\n");
+
+		const result = roundStep(input, TODAY, layout(), new Set(["can-1"]));
+
+		expect(result.collection).toBe(input);
+		expect(result.rounds).toBe(0);
+		expect(result.leftAlone).toEqual([]);
+		expect(result.held).toEqual([]);
+	});
+});

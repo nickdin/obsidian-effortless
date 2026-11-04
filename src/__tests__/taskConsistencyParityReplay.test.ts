@@ -669,7 +669,7 @@ describe("a subtask waits for its parent across two real runs", () => {
 		return { ...defaultData().core.layout, dailyLogFolder: "Household", dailyLogFilename: "YYYY-MM-DD" };
 	}
 
-	it("keeps a marked, done subtask under an unmarked parent once the parent is hand-ticked too, rather than moving the subtask alone through the real sweep", async () => {
+	it("never moves a marked, done subtask alone: it waits under its open, unmarked parent, and goes with the parent once the parent is hand-ticked too", async () => {
 		const COLLECTION_PATH = "Chores.md";
 		const today = new Date(2026, 8, 22);
 		const todayLogPath = dailyLogPath(today, subtaskLayout());
@@ -724,12 +724,22 @@ describe("a subtask waits for its parent across two real runs", () => {
 
 		await runOverCollection(deps, collections.all()[0]);
 
-		// The subtask stays exactly where the hand edit left it: the parent
-		// carries no marker, so nothing in the sweep ever calls
-		// `completeInCollection` for the parent's own eid, and the fix means the
-		// child waits rather than moving to "## Completed tasks" alone. A
-		// pre-fix run would find the parent reading "done" and move "Buy the
-		// basket" by itself, and this exact string would then no longer match.
-		expect(files.get(COLLECTION_PATH)).toBe(collectionParentTicked);
+		// The parent carries no marker, so it is never `completeInCollection`'s
+		// subject; since #1261 it is moved by the run's pass over unpaired
+		// finished tasks instead (the owner's go-ahead on #1261, 2026-11-04, on
+		// this test's earlier expectation that both lines stayed put). The subtask goes with
+		// it, directly beneath it. A pre-#954 run would have moved "Buy the
+		// basket" by itself, and a run without #1261 would have left both lines
+		// under "## Tasks"; either way this exact string would not match.
+		expect(files.get(COLLECTION_PATH)).toBe(
+			[
+				"## Tasks",
+				"",
+				"## Completed tasks",
+				"- [x] Plan the picnic",
+				"\t" + writeMarker("- [x] Buy the basket", eid, hash),
+				"",
+			].join("\n"),
+		);
 	});
 });

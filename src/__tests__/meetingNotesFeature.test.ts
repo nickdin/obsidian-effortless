@@ -15,10 +15,13 @@
  * Every folder, address, series id and path here is invented.
  */
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { App as ObsidianApp, Plugin as ObsidianPlugin, Vault as ObsidianVault } from "obsidian";
-import { Notice, Plugin, Vault, controlsUnder, resetSettings } from "./__mocks__/obsidian";
+import { Notice, Plugin, Vault, controlsUnder, resetSettings, setLanguage } from "./__mocks__/obsidian";
 import type { TextComponent } from "./__mocks__/obsidian";
+import { repoRoot } from "./repoRoot";
 import type { Calendar } from "../core/calendarSources";
 import type { Collections } from "../core/collections";
 import type { FeatureHost } from "../core/feature";
@@ -140,7 +143,7 @@ function lastSavedSlice(plugin: Plugin): Record<string, unknown> {
 	return JSON.parse(plugin.saved[plugin.saved.length - 1]).features[FEATURE_ID];
 }
 
-/** The six template fields, their row names and their shipped defaults. */
+/** The eight template fields, their row names and their shipped defaults; the logbook heading is #1260's, the logbook line start #1269's. */
 const TEMPLATE_ROWS: ReadonlyArray<readonly [field: string, rowName: string, shipped: string]> = [
 	["tag", "Tag", "meeting"],
 	["effortField", "Effort field", "effort"],
@@ -148,10 +151,13 @@ const TEMPLATE_ROWS: ReadonlyArray<readonly [field: string, rowName: string, shi
 	["notesHeading", "Notes heading", "# Notes"],
 	["agendaHeading", "Agenda heading", "## Agenda and purpose"],
 	["decisionsHeading", "Decisions heading", "## Decisions and actions"],
+	["logbookHeading", "Logbook heading", "## Logbook"],
+	["logbookLineStart", "Logbook line start", "-"],
 ];
 
 /** A value each field accepts that is not its shipped default, so a save of it is visible. */
 function accepted(field: string): string {
+	if (field === "logbookLineStart") return "- [i]";
 	return field.endsWith("Heading") ? "### Invented" : "invented";
 }
 
@@ -328,7 +334,7 @@ describe("the hook a switch to ready runs", () => {
 });
 
 describe("the card's rows", () => {
-	it("shows the folder, the address and the six template fields, in that order, with the English defaults", async () => {
+	it("shows the folder, the address and the eight template fields, in that order, with the English defaults", async () => {
 		const { tab } = await startMeetingNotes(dataWith(), true);
 		const card = openCard(tab);
 		const rows = controlsUnder(card);
@@ -416,10 +422,10 @@ describe("the card's rows", () => {
 });
 
 describe("the day-link and processed field names are the layout's", () => {
-	it("shows neither Day link field nor Processed field on the card, only the six template rows", async () => {
+	it("shows neither Day link field nor Processed field on the card, only the eight template rows", async () => {
 		const { tab } = await startMeetingNotes(dataWith(ANSWERED), true);
 		const names = [...controlsUnder(openCard(tab)).keys()].filter((name) => name !== "");
-		expect(names).toHaveLength(2 + 6);
+		expect(names).toHaveLength(2 + 8);
 		expect(names).not.toContain("Day link field");
 		expect(names).not.toContain("Processed field");
 	});
@@ -483,6 +489,110 @@ describe("the day-link and processed field names are the layout's", () => {
 	});
 });
 
+describe("the unplanned meeting's command and ribbon icon", () => {
+	beforeEach(() => {
+		// A switched-off icon is hidden by a rule in `styles.css`, so the stub reads it from there.
+		const styles = document.createElement("style");
+		styles.textContent = readFileSync(join(repoRoot, "styles.css"), "utf8");
+		document.head.appendChild(styles);
+	});
+
+	/** The folder answered, and a day's log the core can name. */
+	function configured(): EffortlessData {
+		const data = dataWith(ANSWERED);
+		data.core.layout = { ...data.core.layout, dailyLogFolder: "Journal", dailyLogFilename: "YYYY-MM-DD" };
+		return data;
+	}
+
+	const COMMAND = "effortless:unplanned-meeting";
+
+	it.each([
+		["builds the days", true],
+		["stands by", false],
+	])("is offered on a device that %s, and both are gone once the feature is switched off", async (_, buildsTheDays) => {
+		const { plugin, registry } = await startMeetingNotes(configured(), buildsTheDays);
+
+		expect(plugin.commands.map((command) => command.id)).toEqual([COMMAND]);
+		expect(plugin.ribbonIcons.map((icon) => icon.title)).toEqual(["New note for an unplanned meeting"]);
+		// Not a microphone: Vault Recorder's meeting button is one, and the two sit side by side.
+		expect(plugin.ribbonIcons.map((icon) => icon.icon)).toEqual(["calendar-plus"]);
+
+		await registry.setEnabled(FEATURE_ID, false);
+
+		expect(plugin.commands).toEqual([]);
+		expect(plugin.ribbonIcons).toEqual([]);
+	});
+
+	it("is named in Swedish when Obsidian is displayed in Swedish", async () => {
+		setLanguage("sv");
+		try {
+			const { plugin } = await startMeetingNotes(configured(), false);
+			expect(plugin.commands.map((command) => command.name)).toEqual(["Ny anteckning för ett oplanerat möte"]);
+		} finally {
+			setLanguage("en");
+		}
+	});
+
+	it("creates the note and opens it with the cursor under the notes heading, asking nothing first, then links it from today's log", async () => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(2026, 10, 4, 14, 5));
+		try {
+			const writerVault = new Vault();
+			writerVault.allowReads();
+			const { plugin } = await startMeetingNotes(configured(), false, { writerVault });
+			const opened: Array<{ path: string; line: unknown }> = [];
+			vi.spyOn(plugin.app.workspace, "getLeaf").mockReturnValue({
+				openFile: async (file: { path: string }, state?: { eState?: { line?: unknown } }) => {
+					opened.push({ path: file.path, line: state?.eState?.line });
+				},
+			} as never);
+
+			// The ribbon icon, as a tap on the phone would.
+			plugin.ribbonIcons[0]?.el.click();
+			await vi.advanceTimersByTimeAsync(0);
+
+			const path = "Meetings/2026-11-04 Unplanned meeting 1405.md";
+			expect(writerVault.created).toEqual([path, "Journal/2026-11-04.md"]);
+			const text = writerVault.readableContents()?.get(path) ?? "";
+			const lines = text.split("\n");
+			expect(opened).toHaveLength(1);
+			expect(opened[0].path).toBe(path);
+			expect(lines[(opened[0].line as number) - 1]).toBe("# Notes");
+			expect(text).toContain("effortless-written: ");
+			const day = writerVault.readableContents()?.get("Journal/2026-11-04.md") ?? "";
+			expect(day.split("\n").filter((line) => line === "[[2026-11-04 Unplanned meeting 1405]]")).toHaveLength(1);
+			expect(Notice.messages).toEqual([]);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("says at the press, on a device that stands by, which stored template value it cannot use", async () => {
+		const data = configured();
+		data.features[FEATURE_ID] = { ...ANSWERED, template: { notesHeading: "not a heading" } };
+		const { plugin } = await startMeetingNotes(data, false);
+		vi.spyOn(plugin.app.workspace, "getLeaf").mockReturnValue({ openFile: async () => undefined } as never);
+		// Standing by, the feature never loaded, so nothing has said it yet.
+		expect(Notice.messages).toEqual([]);
+
+		plugin.commands[0]?.callback?.();
+		await Promise.resolve();
+
+		expect(Notice.messages.join("\n")).toContain('cannot use the Notes heading "not a heading"');
+	});
+
+	it("says what is missing and makes nothing while the folder is blank", async () => {
+		const writerVault = new Vault();
+		const { plugin } = await startMeetingNotes(dataWith(), false, { writerVault });
+
+		plugin.commands[0]?.callback?.();
+		await Promise.resolve();
+
+		expect(writerVault.created).toEqual([]);
+		expect(Notice.messages.join("\n")).toContain("Enter the meeting notes folder on the Meeting notes card first.");
+	});
+});
+
 describe("a hand-written data.json", () => {
 	it("refuses a blank or non-text template field on read with a notice, and uses the English default", async () => {
 		const { feature } = await startMeetingNotes(
@@ -505,7 +615,81 @@ describe("a hand-written data.json", () => {
 			notesHeading: "# Notes",
 			agendaHeading: "## Agenda and purpose",
 			decisionsHeading: "## Decisions and actions",
+			logbookHeading: "## Logbook",
+			logbookLineStart: "-",
 		});
+	});
+
+	it("refuses an unusable logbook heading on read with a notice, and writes no logbook rather than the English default", async () => {
+		const { feature, tab } = await startMeetingNotes(
+			dataWith({ ...ANSWERED, template: { logbookHeading: "Loggbok" } }),
+			true,
+		);
+		expect(Notice.messages).toEqual([
+			'Effortless: meeting notes cannot use the Logbook heading "Loggbok" stored in its settings, and writes no logbook until it is changed on the Meeting notes card.',
+		]);
+		expect(feature.logbookHeading()).toBeNull();
+		expect(row(openCard(tab), "Logbook heading").desc()).toBe(
+			'Logbook heading must start with #, the way a heading is written. The value "Loggbok" stored here is not used; no logbook is written until this is changed.',
+		);
+	});
+
+	it("refuses a logbook heading with no space after its # signs, which no note could ever be found under", async () => {
+		const { feature } = await startMeetingNotes(dataWith({ ...ANSWERED, template: { logbookHeading: "##Loggbok" } }), true);
+		expect(Notice.messages).toEqual([
+			'Effortless: meeting notes cannot use the Logbook heading "##Loggbok" stored in its settings, and writes no logbook until it is changed on the Meeting notes card.',
+		]);
+		expect(feature.logbookHeading()).toBeNull();
+	});
+
+	it.each([
+		["blank", "", "Logbook line start cannot be blank."],
+		["not text", 5, "Logbook line start must be text."],
+		["not starting with -", "[i]", "Logbook line start must be - alone or - and a space before more, so the line is a list item."],
+		["with no space after -", "-[i]", "Logbook line start must be - alone or - and a space before more, so the line is a list item."],
+		["- and a space with nothing after it", "- ", "Logbook line start must be - alone or - and a space before more, so the line is a list item."],
+		["ending in a space", "- [i] ", "Logbook line start must be one line, with no space at its end."],
+		["holding a line break", "- [i]\n- [ ] y", "Logbook line start must be one line, with no space at its end."],
+	])("refuses a logbook line start that is %s on read with a notice, and writes no logbook rather than the default", async (_case, stored, refusal) => {
+		const { feature, tab } = await startMeetingNotes(dataWith({ ...ANSWERED, template: { logbookLineStart: stored } }), true);
+		expect(Notice.messages).toEqual([
+			`Effortless: meeting notes cannot use the Logbook line start ${JSON.stringify(stored)} stored in its settings, and writes no logbook until it is changed on the Meeting notes card.`,
+		]);
+		expect(feature.logbookLineStart()).toBeNull();
+		expect(row(openCard(tab), "Logbook line start").desc()).toBe(
+			`${refusal} The value ${JSON.stringify(stored)} stored here is not used; no logbook is written until this is changed.`,
+		);
+	});
+
+	it("refuses a logbook line start that would not make a list item on entry, and keeps the previous value", async () => {
+		vi.useFakeTimers();
+		try {
+			const { plugin, tab, feature } = await startMeetingNotes(dataWith(ANSWERED), true);
+			const box = row(openCard(tab), "Logbook line start");
+			box.text.change("[i]");
+			expect(box.desc()).toBe("Logbook line start must be - alone or - and a space before more, so the line is a list item.");
+			await vi.advanceTimersByTimeAsync(SAVE_AFTER_TYPING_MS);
+			expect(plugin.saved).toEqual([]);
+			expect(feature.logbookLineStart()).toBe("-");
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it("answers the stored logbook line start when it is usable, and - when none is stored", async () => {
+		const stored = await startMeetingNotes(dataWith({ ...ANSWERED, template: { logbookLineStart: "- [i]" } }), true);
+		expect(stored.feature.logbookLineStart()).toBe("- [i]");
+		const none = await startMeetingNotes(dataWith(ANSWERED), true);
+		expect(none.feature.logbookLineStart()).toBe("-");
+		expect(Notice.messages).toEqual([]);
+	});
+
+	it("answers the stored logbook heading when it is usable, and the English default when none is stored", async () => {
+		const stored = await startMeetingNotes(dataWith({ ...ANSWERED, template: { logbookHeading: "## Loggbok" } }), true);
+		expect(stored.feature.logbookHeading()).toBe("## Loggbok");
+		const none = await startMeetingNotes(dataWith(ANSWERED), true);
+		expect(none.feature.logbookHeading()).toBe("## Logbook");
+		expect(Notice.messages).toEqual([]);
 	});
 
 	it("shows a refused stored field as stored on its row, with the refusal beside it, and does not rewrite it", async () => {

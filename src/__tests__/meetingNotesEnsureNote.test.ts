@@ -865,6 +865,8 @@ describe("ensureNote — a custom template's field names reach the whole created
 		notesHeading: "# Invented notes",
 		agendaHeading: "## Invented agenda",
 		decisionsHeading: "## Invented decisions",
+		logbookHeading: "## Invented logbook",
+		logbookLineStart: "- [i]",
 	};
 
 	it("uses none of the English defaults when a custom template is given", () => {

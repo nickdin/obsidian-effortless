@@ -187,6 +187,14 @@ interface Entry {
 	 * withdraws a view type (`registerView` `:4974` is the only one).
 	 */
 	views: Map<string, GatedView>;
+	/**
+	 * Set once the feature, switched on, has stood down on this device and been
+	 * asked for its `onStandby` offer; cleared when that offer is taken back —
+	 * a switch-off, a failure, or a real start here. It is what
+	 * keeps the offer to one per stand-down, and what lets a standing-by
+	 * feature's ribbon icon answer while `accepting` is false.
+	 */
+	standingBy: boolean;
 	/** Set when loading threw. Cleared when the feature loads cleanly again. */
 	failure?: string;
 }
@@ -260,6 +268,7 @@ export class FeatureRegistry {
 			surfaces: [],
 			ribbonIcons: new Map(),
 			views: new Map(),
+			standingBy: false,
 		};
 		let feature: Feature;
 		try {
@@ -562,12 +571,22 @@ export class FeatureRegistry {
 	 * whose cause the person then fixes, does not come back on a device-switch
 	 * flip. They switch that feature off and on, which is what `NOT_STARTED` and
 	 * the failed row already tell them to do.
+	 *
+	 * A running feature that must now stand down is unloaded and then handed
+	 * to `load` in the same pass, which finds it standing down and asks it for
+	 * its `onStandby` offer, so what it offers on a device that does not run it
+	 * is there at once.
 	 */
 	recheckReadiness(): void {
 		for (const [id, entry] of this.entries) {
 			if (!this.settings.isEnabled(id)) continue;
 			if (entry.loaded) {
-				if (this.mustStandDown(entry)) this.unload(entry);
+				if (this.mustStandDown(entry)) {
+					this.unload(entry);
+					// Into standby in the same pass, so what the feature offers on a
+					// device that does not run it is offered at once.
+					this.load(entry);
+				}
 			} else if (entry.failure === undefined) {
 				// `load` asks the same question again and refuses on the same two
 				// answers, so a feature that must still stand down stays down.
@@ -649,7 +668,15 @@ export class FeatureRegistry {
 				// screen's toggle semantics is the cross-coupling the feature
 				// contract exists to prevent.
 				entry.failure = undefined;
+				this.standBy(entry);
 				return;
+			}
+			// What the feature offered while it stood by goes before `onload`
+			// offers its own, so nothing is offered twice.
+			if (entry.standingBy) {
+				entry.standingBy = false;
+				this.removeCommands(entry);
+				this.removeSurfaces(entry);
 			}
 			// Before the attach, not after it: `addChild` runs the feature's
 			// `onload`, and a feature that finds something wrong there reports
@@ -668,6 +695,18 @@ export class FeatureRegistry {
 		// Only a start that took: a failed one draws plainly before and after,
 		// so an open note has nothing new to show.
 		if (entry.loaded) this.redrawBlocks(entry);
+	}
+
+	/**
+	 * Asks a switched-on feature that stands down here for what it offers on
+	 * this device anyway, once per stand-down (`Feature.onStandby`, #1258).
+	 * Called inside `load`'s catch, so a feature whose offer throws fails the
+	 * way a feature whose `onload` throws does.
+	 */
+	private standBy(entry: Entry): void {
+		if (entry.standingBy) return;
+		entry.standingBy = true;
+		this.featureIn(entry).onStandby?.();
 	}
 
 	private unload(entry: Entry): void {
@@ -706,6 +745,7 @@ export class FeatureRegistry {
 		// nothing unless the feature's own `onunload` added something.
 		this.removeCommands(entry);
 		this.removeSurfaces(entry);
+		entry.standingBy = false;
 		// A popup this feature has open closes now rather than at the next
 		// keystroke. The suggester itself stays registered with the plugin —
 		// Obsidian cannot take it back — and declines every trigger from here on,
@@ -856,6 +896,7 @@ export class FeatureRegistry {
 		}
 		this.removeCommands(entry);
 		this.removeSurfaces(entry);
+		entry.standingBy = false;
 		// It was never marked loaded, so its suggester already declines; this
 		// only closes a popup it could not have opened, and costs nothing.
 		entry.suggester?.closeQuietly();
@@ -1100,7 +1141,9 @@ export class FeatureRegistry {
 					return held.el;
 				}
 				const el = this.plugin.addRibbonIcon(icon, title, (evt) => {
-					if (!entry.accepting) return;
+					// A standing-by feature's icon answers too: it is one of the
+					// things `onStandby` offers.
+					if (!entry.accepting && !entry.standingBy) return;
 					return entry.ribbonIcons.get(title)?.callback(evt);
 				});
 				entry.ribbonIcons.set(title, { el, callback });

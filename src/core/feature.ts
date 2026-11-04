@@ -478,6 +478,27 @@ export abstract class Feature extends Component {
 	liveLine?(): string | null;
 
 	/**
+	 * Called when the feature is switched on but stands by on this device —
+	 * its {@link readiness} answers `standby` or `unavailable`, so the core
+	 * never loads it here and `onload` never runs. The place to register what a
+	 * person reaches on this device although the feature's job runs on another:
+	 * meeting notes' unplanned meeting is pressed on the phone while the server
+	 * builds the days.
+	 *
+	 * **Commands and ribbon icons only.** Register them through the host as from
+	 * `onload`; a standing-by feature's icon answers its click. The core takes
+	 * both back when the feature is switched off, fails, or starts on this
+	 * device after all — then `onload` runs and offers its own — and asks this
+	 * once per stand-down, however often readiness is asked again. The problem
+	 * channel stays shut while the feature stands by, so anything the actions
+	 * have to say is said in a `Notice`.
+	 *
+	 * Optional, like {@link liveLine}: a feature with nothing to offer here
+	 * stands by exactly as before.
+	 */
+	onStandby?(): void;
+
+	/**
 	 * Asks to be told when {@link liveLine} would answer something else than it
 	 * did, and hands back the one way to stop being told. This is how an open
 	 * settings screen keeps a row from showing a line that is already over.

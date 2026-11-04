@@ -32,6 +32,7 @@ import {
 	DEFAULT_TEMPLATE,
 	TEMPLATE_FIELDS,
 	TEMPLATE_FIELD_NAMES,
+	insteadOfRefused,
 	storedAsWritten,
 	templateFieldRefusal,
 } from "./types";
@@ -85,6 +86,8 @@ const TEMPLATE_LINES: Readonly<Record<keyof MeetingNoteTemplate, string>> = {
 	notesHeading: "The heading a meeting note opens with.",
 	agendaHeading: "The heading the invitation's own text goes under.",
 	decisionsHeading: "The heading left for your decisions and actions.",
+	logbookHeading: "The heading in a collection where every meeting note naming it in its effort field is linked. A collection without it gets nothing.",
+	logbookLineStart: "What each logbook line starts with, before the link: - for a plain list item, or a marked one such as - [i].",
 };
 
 /** Why a stored folder or address cannot be used, or `null` where it can. Both must be text; blank is allowed here. */
@@ -192,7 +195,7 @@ export function renderMeetingNotesSettings(
 			.setDesc(
 				refusedOnRead === null
 					? TEMPLATE_LINES[field]
-					: `${refusedOnRead} The value ${storedAsWritten(stored)} stored here is not used; ${storedAsWritten(DEFAULT_TEMPLATE[field])} is used until this is changed.`,
+					: `${refusedOnRead} The value ${storedAsWritten(stored)} stored here is not used; ${insteadOfRefused(field).row} until this is changed.`,
 			)
 			.addText((text) => {
 				text

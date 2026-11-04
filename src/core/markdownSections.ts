@@ -78,7 +78,7 @@ export function headingRange(content: string, text: string, level: number): Sect
 		if (found === null) continue;
 
 		if (heading < 0) {
-			if (found.level === wantedLevel && found.text.toLowerCase() === wanted) heading = i;
+			if (headingIs(found, text, wantedLevel)) heading = i;
 			continue;
 		}
 		if (found.level <= wantedLevel) return { heading, start: heading + 1, end: i };
@@ -206,6 +206,33 @@ export function fencedLinesOfNote(lines: readonly string[], isDailyLog: boolean)
  */
 export function isAtxHeading(line: string): boolean {
 	return atxHeading(line) !== null;
+}
+
+/** A heading's level and its text, as a heading line or Obsidian's own heading index states them. */
+export interface HeadingParts {
+	readonly level: number;
+	readonly text: string;
+}
+
+/**
+ * The level and text of `line` read as a heading, or `null` when it is not
+ * one: the level-and-text half of `atxHeading`, for a caller holding a heading
+ * as a setting — `## Logbook` — that has to hand {@link headingRange} its text
+ * and level apart.
+ */
+export function headingParts(line: string): HeadingParts | null {
+	return atxHeading(line);
+}
+
+/**
+ * Whether `found` is the heading `text` at `level`: the same level, and the
+ * same text once blanks at either end are gone and capitals ignored. The match
+ * {@link headingRange} makes, exported so a caller asking Obsidian's heading
+ * index the same question — is this heading in the note? — asks it this way. A blank `text` matches nothing.
+ */
+export function headingIs(found: HeadingParts, text: string, level: number): boolean {
+	const wanted = text.trim().toLowerCase();
+	return wanted !== "" && found.level === level && found.text.trim().toLowerCase() === wanted;
 }
 
 /**

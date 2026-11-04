@@ -30,6 +30,8 @@ const TEMPLATE: MeetingNoteTemplate = {
 	notesHeading: "# My notes",
 	agendaHeading: "## Purpose",
 	decisionsHeading: "## Actions",
+	logbookHeading: "## Log",
+	logbookLineStart: "- [i]",
 };
 
 /** The two property names the vault layout holds, not the template: the core's, handed to the editor beside it. */

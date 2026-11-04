@@ -5,6 +5,7 @@ import {
 	clampLevel,
 	closesFence,
 	fencedLines,
+	headingParts,
 	headingRange,
 	isAtxHeading,
 	openingFence,
@@ -135,6 +136,19 @@ describe("headingRange", () => {
 			start: 1,
 			end: 2,
 		});
+	});
+});
+
+describe("headingParts", () => {
+	it("reads a heading setting as the level and text headingRange takes", () => {
+		expect(headingParts("## Loggbok")).toEqual({ level: 2, text: "Loggbok" });
+		expect(headingParts("#### Log book  ")).toEqual({ level: 4, text: "Log book" });
+	});
+
+	it("answers null for a line that is not a heading", () => {
+		expect(headingParts("Loggbok")).toBeNull();
+		expect(headingParts("##Loggbok")).toBeNull();
+		expect(headingParts("####### Seven")).toBeNull();
 	});
 });
 

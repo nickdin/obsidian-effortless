@@ -17,20 +17,28 @@ import { reasonOf } from "../../core/reason";
 import type { FeatureHost, Readiness, SettingsChanged } from "../../core/feature";
 import type { SaveFailureAnnouncer } from "../../core/saveFailureAnnouncer";
 import { clickFill } from "./clickFill";
+import { carriesTag } from "./logbookLinks";
+import { LogbookKeeper } from "./logbookKeeper";
+import { readLogbookMemory } from "./logbookMemory";
+import { logbookPorts } from "./logbookPorts";
 import { IDENTITY_FIELD, readIdentity } from "./noteIdentity";
 import { readNotesMemory } from "./notesMemory";
 import type { NotesMemory } from "./notesMemory";
 import { placeholderNotePaths } from "./placeholderNotes";
+import { startUnplannedMeeting } from "./unplannedMeeting";
+import { meetingNotesWords } from "./words";
 import { runMeetingNotes } from "./run";
 import type { RunNotes, RunProblems, RunVault } from "./run";
 import { MEETING_NOTES_SETTING_NAMES, folderAnswered, renderMeetingNotesSettings } from "./settingsPanel";
 import {
 	DEFAULT_MEETING_NOTES_SETTINGS,
-	DEFAULT_TEMPLATE,
 	FEATURE_ID,
 	TEMPLATE_FIELD_NAMES,
+	insteadOfRefused,
 	readTemplate,
 	storedAsWritten,
+	usableLogbookHeading,
+	usableLogbookLineStart,
 } from "./types";
 import type { MeetingNoteTemplate, MeetingNotesSettings } from "./types";
 
@@ -188,6 +196,13 @@ export class MeetingNotes extends Feature {
 	private firstRunTimeoutId: number | null = null;
 
 	/**
+	 * This load's logbook keeper, made in `onload` and stopped when the
+	 * feature unloads, so a pass asked for by a run from an earlier load finds
+	 * that load's keeper stopped and does nothing.
+	 */
+	private logbook: LogbookKeeper | null = null;
+
+	/**
 	 * Says once per load whatever stored value the feature cannot use, then
 	 * runs the feature if it is ready.
 	 *
@@ -221,7 +236,105 @@ export class MeetingNotes extends Feature {
 			);
 		}
 
+		const logbook = readLogbookMemory(stored.logbook);
+		if (logbook.dropped.length > 0) {
+			new Notice(
+				`Effortless: meeting notes dropped ${logbook.dropped.length === 1 ? "an entry" : "entries"} of the wrong shape from its memory of the logbook lines it has written, for ${logbook.dropped.map((key) => storedAsWritten(key)).join(", ")}.`,
+			);
+		}
+		this.keepLogbook();
+
+		this.offerUnplannedMeeting();
 		if (this.readiness().state === "ready") this.runNow();
+	}
+
+	/**
+	 * Keeps every collection's logbook section in step with the meeting notes
+	 * naming it: a pass after each run, and one a moment after a meeting
+	 * note changes, is deleted or is renamed. A note counts as a meeting note
+	 * by its tag in Obsidian's index, or as one the memory names, so a note that
+	 * just lost its tag still has its line taken out.
+	 */
+	private keepLogbook(): void {
+		const { vault, metadataCache } = this.host.app;
+		const keeper = new LogbookKeeper({
+			ready: () => this.readiness().state === "ready",
+			heading: () => this.logbookHeading(),
+			lineStart: () => this.logbookLineStart(),
+			template: () => this.template(),
+			memory: () => readLogbookMemory(this.storedSlice().logbook).memory,
+			save: (memory) => this.own.save({ ...this.own.read(), logbook: memory }),
+			ports: (start) => logbookPorts(this.host.app, this.host.notes, this.host.collections, start),
+			notice: (message) => new Notice(message),
+		});
+		this.logbook = keeper;
+		this.register(() => keeper.stop());
+
+		const remembered = (path: string): boolean =>
+			Object.entries(readLogbookMemory(this.storedSlice().logbook).memory).some(
+				([collection, entries]) => collection === path || entries.some((entry) => entry.note === path),
+			);
+		// `MetadataCache.on("changed", (file, data, cache))`, `node_modules/obsidian/obsidian.d.ts`.
+		this.registerEvent(
+			metadataCache.on("changed", (file, _data, cache) => {
+				if (carriesTag(cache.frontmatter, this.template().tag) || remembered(file.path)) keeper.passSoon();
+			}),
+		);
+		this.registerEvent(
+			vault.on("delete", (file) => {
+				if (remembered(file.path)) keeper.passSoon();
+			}),
+		);
+		this.registerEvent(
+			vault.on("rename", (file, oldPath) => {
+				void keeper.renamed(oldPath, file.path);
+			}),
+		);
+	}
+
+	/**
+	 * On a device that does not build the days the core never loads this
+	 * feature, yet that is where a meeting is recorded — the phone, the laptop
+	 * — so the unplanned meeting is offered there too.
+	 */
+	override onStandby(): void {
+		this.offerUnplannedMeeting();
+	}
+
+	/**
+	 * The command and the ribbon icon that make a note for a meeting on no
+	 * calendar (`unplannedMeeting.ts`), offered from `onload` and from
+	 * {@link onStandby} alike; the core takes both back at a switch-off. Every
+	 * setting is read at the press, never kept from the offer, so a changed
+	 * folder or template is met at the next press.
+	 */
+	private offerUnplannedMeeting(): void {
+		const words = meetingNotesWords();
+		const press = (): void => {
+			// Said at the press as at a click that fills a note: on a device that
+			// stands by, `onload` never ran to say it.
+			for (const message of this.unusableSettings(this.storedSlice())) new Notice(message);
+			void startUnplannedMeeting({
+				now: new Date(),
+				folder: folderAnswered(this.storedSlice().meetingNotesFolder) ? this.folder() : "",
+				template: this.template(),
+				layout: this.host.core.layout,
+				title: words.unplannedTitle,
+				fileAt: (path) => this.host.app.vault.getFileByPath(path),
+				create: (path, text) => this.host.notes.create(path, text),
+				// `WorkspaceLeaf.openFile(file, openState?)`, `node_modules/obsidian/obsidian.d.ts:8257`;
+				// the markdown view takes `eState.line` as the cursor's line, read back in
+				// `docs/acceptance-shots/issue-1186-followed-drive.txt`.
+				open: (file, line) => this.host.app.workspace.getLeaf(false).openFile(file, { eState: { line } }),
+				todaysLog: (date, layout) => this.host.notes.createDailyLog(date, layout),
+				edit: (file, edit) => this.host.notes.edit(file, edit, { askedFor: true }),
+				notice: (message) => new Notice(message),
+			});
+		};
+		this.host.addCommand({ id: "unplanned-meeting", name: words.unplannedCommand, callback: press });
+		// A calendar with a plus, not a microphone: Vault Recorder's meeting
+		// button, pressed straight after this one, is the microphone.
+		this.host.addRibbonIcon?.("calendar-plus", words.unplannedCommand, press);
 	}
 
 	/**
@@ -252,7 +365,7 @@ export class MeetingNotes extends Feature {
 		}
 		for (const { field, stored: value } of template.refused) {
 			messages.push(
-				`Effortless: meeting notes cannot use the ${TEMPLATE_FIELD_NAMES[field]} ${storedAsWritten(value)} stored in its settings, and uses ${storedAsWritten(DEFAULT_TEMPLATE[field])} until it is changed on the ${OWN_CARD} card.`,
+				`Effortless: meeting notes cannot use the ${TEMPLATE_FIELD_NAMES[field]} ${storedAsWritten(value)} stored in its settings, and ${insteadOfRefused(field).notice} until it is changed on the ${OWN_CARD} card.`,
 			);
 		}
 		return messages;
@@ -316,6 +429,7 @@ export class MeetingNotes extends Feature {
 	}
 
 	private async runOnce(generation: number): Promise<void> {
+		const logbook = this.logbook;
 		await runMeetingNotes({
 			calendar: this.host.calendar,
 			vault: this.vaultPort(),
@@ -332,6 +446,9 @@ export class MeetingNotes extends Feature {
 			// own pre-reload today/meetings/memory snapshot.
 			commitMemory: (memory) => (generation === this.generation ? this.saveNotesMemory(memory) : Promise.resolve()),
 		});
+		// Not awaited: a logbook write held for a collection the person is typing
+		// in must not hold this run, and the next tick, up with it.
+		void logbook?.pass();
 	}
 
 	/** `host.problems` plus {@link reportedKeys}, which is what lets `list()` answer at all. */
@@ -492,6 +609,16 @@ export class MeetingNotes extends Feature {
 	/** The template as the feature can use it: each stored field it accepts, the English default for any it refuses. */
 	template(): MeetingNoteTemplate {
 		return readTemplate(this.storedSlice().template).template;
+	}
+
+	/** The logbook heading the feature may write under, or `null` while the stored one is refused. */
+	logbookHeading(): string | null {
+		return usableLogbookHeading(this.storedSlice().template);
+	}
+
+	/** What each logbook line starts with, or `null` while the stored start is refused. */
+	logbookLineStart(): string | null {
+		return usableLogbookLineStart(this.storedSlice().template);
 	}
 
 	/** The stored address when it is text, blank otherwise. */

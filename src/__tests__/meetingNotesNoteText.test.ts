@@ -159,6 +159,8 @@ describe("noteText — the whole text of a newly created note", () => {
 			notesHeading: "# Own notes",
 			agendaHeading: "## Purpose",
 			decisionsHeading: "## Outcomes",
+			logbookHeading: "## Log",
+			logbookLineStart: "- [i]",
 		};
 		const text = noteText(meeting(), DATE, custom, ["Bo Bergman"], { dayLinkField: "log", processedField: "filed", diaryDateField: "journal" });
 

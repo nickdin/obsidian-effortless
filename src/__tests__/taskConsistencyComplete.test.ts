@@ -689,3 +689,41 @@ describe("the move on a note with Windows line endings", () => {
 		});
 	}
 });
+
+describe("a subtree holding a pairing the run holds untouched waits", () => {
+	const collection = [
+		"## Tasks",
+		"",
+		marked("- [x] Plan the picnic", "picnic-1"),
+		"\t" + marked("- [ ] Buy the basket", "basket-1"),
+		"\t\t" + marked("- [/] Choose the wicker", "wicker-1"),
+		"## Completed tasks",
+		"",
+		"- [x] Sweep the porch",
+	].join("\n");
+
+	it("neither call moves or rewrites anything when a grandchild carries a held eid", () => {
+		// If the move ignored the held set, the picnic would land under the
+		// completed-tasks heading and both open subtasks would read `[x]`.
+		const held = new Set(["wicker-1"]);
+		expect(completeInCollection(collection, "picnic-1", layout(), held)).toEqual({ collection, moved: false });
+		expect(completeLineInCollection(collection, 2, layout(), held)).toEqual({ collection, moved: false });
+	});
+
+	it("neither call moves or rewrites anything when a direct subtask carries a held eid", () => {
+		const held = new Set(["basket-1"]);
+		expect(completeInCollection(collection, "picnic-1", layout(), held)).toEqual({ collection, moved: false });
+		expect(completeLineInCollection(collection, 2, layout(), held)).toEqual({ collection, moved: false });
+	});
+
+	it("a held eid outside the subtree changes nothing: the move and its cascade run as without one", () => {
+		// If the refusal read the whole note rather than the subtree, this
+		// call would come back unmoved.
+		const held = new Set(["somewhere-else-1"]);
+		const expected = completeInCollection(collection, "picnic-1", layout());
+		expect(expected.moved).toBe(true);
+		expect(expected.collection).toContain("\t\t" + marked("- [x] Choose the wicker", "wicker-1"));
+		expect(completeInCollection(collection, "picnic-1", layout(), held)).toEqual(expected);
+		expect(completeLineInCollection(collection, 2, layout(), held)).toEqual(expected);
+	});
+});

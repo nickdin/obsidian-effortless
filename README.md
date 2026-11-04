@@ -24,7 +24,7 @@ Eight features, each of which can be switched off on its own.
 | Migration | Files a task into the collection it belongs to, from the notes heading of a day's log or from any note that is not a collection, and marks the original |
 | The day view | Draws the day's calendar table to scale, each meeting's height following its length |
 | Building the days ahead | Makes sure a log exists for today and the days ahead, with the day's meetings filled in |
-| Meeting notes | A note per meeting, linked from the day |
+| Meeting notes | A note per meeting, linked from the day, and one in a single tap for a meeting on no calendar |
 | Review | Shows how many notes of the last few days you have not gone through yet, lists them, and draws a month of your diary and review days as a chain |
 | Date entry | Type a date in Swedish or English and get the date the plugin reads |
 | Checkbox cycling | Steps a checkbox through the symbols you have chosen |
@@ -113,6 +113,8 @@ A note whose meeting has left your calendar goes to the trash — Obsidian's own
 A note already at the path where a meeting's note would go, with none of Effortless's own record of it, is adopted rather than written over: at that moment its text is left exactly as it is, never read, compared or corrected, and everyone invited so far is treated as already on the list. From then on it is treated as this feature's own note: a name invited later is added, and a changed title or day renames it like any other.
 
 Meeting notes runs on the same one device that builds the days ahead, chosen by *Build the days on this device* on the core card. On every other device the feature's row shows it off, with a sentence saying another device builds the days and the meeting notes — see the glossary's own entry for the building device.
+
+**A meeting on no calendar.** The command *New note for an unplanned meeting*, or the calendar-with-a-plus icon in the ribbon, makes a note for a meeting starting now and opens it at once, with the cursor under the notes heading — nothing is asked first, so a recorder's own button can be pressed straight after. It is offered on every device while the feature is switched on, the ones that do not build the days included, and is named in Swedish when Obsidian is. The note is built from the same template as every other meeting note, named with today's date, the words *Unplanned meeting* and the start time as four digits (`2026-11-04 Unplanned meeting 1405`), so two such meetings in a day get two notes; pressed twice within one minute, the second press opens the note the first made. It has nobody on its participants list and no `effortless-meeting` property, and the calendar never adopts, renames or trashes it: a calendar meeting that later turns up at the same time gets a note of its own. A link to it is added to today's log, under the notes heading after whatever is written there — never in the calendar table, which building the days ahead rewrites. Today's log is created first if it is not there yet; a day without the notes heading is not rearranged, and a message says the link could not be added. It needs the meeting notes folder and the daily-log folder and filename answered.
 
 A rescheduled meeting keeps its note: it is renamed to the new day rather than left behind or duplicated, with its heading and day link corrected in the same step. If that new path is already taken, the rename is refused, the note stays where it was, and a line on the settings screen says so until you move things by hand.
 

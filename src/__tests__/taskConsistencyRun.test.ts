@@ -1462,3 +1462,306 @@ describe("the startup sweep and a collection whose only task is a ticked recurri
 		expect(notes.readCounts.has("Empty.md")).toBe(false);
 	});
 });
+
+describe("a finished task no day's log ever paired moves under the completed-tasks heading", () => {
+	/** The run's world for one collection: both files, the fakes, and the deps to run with. */
+	function world(collectionText: string, logText: string) {
+		const files = new Map([
+			[COLLECTION_PATH, collectionText],
+			[TODAY_LOG_PATH, logText],
+		]);
+		const notes = fakeNotes(files);
+		const problems = fakeProblems();
+		const runDeps = deps(fakeCollections([collectionOf()]), fakeVault([COLLECTION_PATH, TODAY_LOG_PATH]), notes, problems);
+		return { files, notes, problems, runDeps };
+	}
+
+	it("an undated task ticked in the collection moves with its subtree in the next run, and today's log is not written", async () => {
+		// Before #1261 the run moved a task only by its pairing, so this
+		// collection came back exactly as it went in.
+		const collectionText = [
+			`## ${layout().tasksHeading}`,
+			"- [x] Call @[[Alex]] about the boat",
+			"\t- [ ] Find the number",
+			"- [ ] Buy stamps",
+			"",
+		].join("\n");
+		const logText = dailyLogFrame(layout());
+		const { files, notes, runDeps } = world(collectionText, logText);
+
+		await runOverCollection(runDeps, collectionOf());
+
+		expect(files.get(COLLECTION_PATH)).toBe(
+			[
+				`## ${layout().tasksHeading}`,
+				"- [ ] Buy stamps",
+				"",
+				`## ${layout().completedTasksHeading}`,
+				"",
+				"- [x] Call @[[Alex]] about the boat",
+				"\t- [x] Find the number",
+				"",
+			].join("\n"),
+		);
+		expect(files.get(TODAY_LOG_PATH)).toBe(logText);
+		expect(notes.editCounts.has(TODAY_LOG_PATH)).toBe(false);
+	});
+
+	it("a finished 🔁 line and a finished plain line in one collection: the round writes the next round, and each finished line lands under the completed-tasks heading once", async () => {
+		// If this pass took the 🔁 line first, no fresh round would be written;
+		// if both passes moved it, it would appear twice below the heading.
+		const collectionText = [
+			`## ${layout().tasksHeading}`,
+			"- [x] Water the ferns 🔁 every week ⏳ 2026-09-20",
+			"- [x] Post the letter",
+			"",
+		].join("\n");
+		const { files, runDeps } = world(collectionText, dailyLogFrame(layout()));
+
+		await runOverCollection(runDeps, collectionOf());
+
+		expect(files.get(COLLECTION_PATH)).toBe(
+			[
+				`## ${layout().tasksHeading}`,
+				"- [ ] Water the ferns 🔁 every week ⏳ 2026-09-27",
+				"",
+				`## ${layout().completedTasksHeading}`,
+				"",
+				"- [x] Water the ferns 🔁 every week ⏳ 2026-09-20",
+				"- [x] Post the letter",
+				"",
+			].join("\n"),
+		);
+	});
+
+	it("a finished, unpaired 🔁 line whose rule cannot be read moves as any task, and its unreadable-rule report clears in that run, as its paired twin's does", async () => {
+		// If the pass skipped every 🔁 line, the line would stay under the tasks
+		// heading; if the run's answer from the round step were not trimmed by
+		// the line's text, the report would stand for a line no longer there.
+		const collectionText = [`## ${layout().tasksHeading}`, "- [x] Oil the hinges 🔁 every full moon ⏳ 2026-09-20", ""].join("\n");
+		const { files, problems, runDeps } = world(collectionText, dailyLogFrame(layout()));
+
+		await runOverCollection(runDeps, collectionOf());
+
+		expect(files.get(COLLECTION_PATH)).toBe(
+			[
+				`## ${layout().tasksHeading}`,
+				"",
+				`## ${layout().completedTasksHeading}`,
+				"",
+				"- [x] Oil the hinges 🔁 every full moon ⏳ 2026-09-20",
+				"",
+			].join("\n"),
+		);
+		expect([...problems.standing.keys()].filter((key) => key.startsWith("repeat-unreadable:"))).toEqual([]);
+	});
+
+	it("an unpaired finished parent with a separately paired open subtask: the log copy reads done after one run, and a second run writes nothing (#1244's reason)", async () => {
+		// The cascade marks the subtask done in the collection only. If the run
+		// left the log to follow on a later run, the first run's log would still
+		// read the subtask open and the second run would edit it.
+		const rawCollection = [
+			`## ${layout().tasksHeading}`,
+			"- [ ] Plan the trip",
+			"\t- [ ] Book the ferry ⏳ 2026-09-22",
+			"",
+		].join("\n");
+		const copied = copyIn(rawCollection, dailyLogFrame(layout()), TODAY, layout(), "Errands");
+		expect(copied.collection).toContain("- [/] Book the ferry");
+		expect(copied.collection).toContain("- [ ] Plan the trip");
+		const ticked = copied.collection.replace("- [ ] Plan the trip", "- [x] Plan the trip");
+		expect(ticked).not.toBe(copied.collection);
+		const { files, notes, runDeps } = world(ticked, copied.log);
+
+		await runOverCollection(runDeps, collectionOf());
+		const afterFirst = { collection: files.get(COLLECTION_PATH)!, log: files.get(TODAY_LOG_PATH)! };
+		notes.editCounts.clear();
+		await runOverCollection(runDeps, collectionOf());
+
+		const lines = afterFirst.collection.split("\n");
+		const completedAt = lines.indexOf(`## ${layout().completedTasksHeading}`);
+		expect(completedAt).toBeGreaterThanOrEqual(0);
+		expect(lines.findIndex((line) => line.includes("Plan the trip"))).toBeGreaterThan(completedAt);
+		expect(parsed(lineContaining(afterFirst.log, "Book the ferry")).meaning).toBe("done");
+		expect(notes.editCounts.size).toBe(0);
+		expect(files.get(COLLECTION_PATH)).toBe(afterFirst.collection);
+		expect(files.get(TODAY_LOG_PATH)).toBe(afterFirst.log);
+	});
+});
+
+describe("a finished task waits while its subtree holds a clashing pairing", () => {
+	/** The run's world for one collection: both files, the fakes, and the deps to run with. */
+	function world(collectionText: string, logText: string, extra: ReadonlyArray<[string, string]> = []) {
+		const files = new Map([[COLLECTION_PATH, collectionText], [TODAY_LOG_PATH, logText], ...extra]);
+		const notes = fakeNotes(files);
+		const problems = fakeProblems();
+		const paths = [COLLECTION_PATH, TODAY_LOG_PATH, ...extra.map(([path]) => path)];
+		const runDeps = deps(fakeCollections([collectionOf()]), fakeVault(paths), notes, problems);
+		return { files, notes, problems, runDeps };
+	}
+
+	/**
+	 * `raw`'s dated lines copied into today's log, then the `clashing` line's two
+	 * copies given different priorities — ⏫ in the collection, 🔽 in the log —
+	 * so each side changed since the last sync and the two disagree.
+	 */
+	function clashingTree(raw: string, clashing: string): { collectionText: string; logText: string; eid: string } {
+		const copied = copyIn(raw, dailyLogFrame(layout()), TODAY, layout(), "Errands");
+		const collectionLine = lineContaining(copied.collection, clashing);
+		const logLine = lineContaining(copied.log, clashing);
+		const eid = readMarker(parsed(collectionLine))!.eid;
+		return {
+			collectionText: copied.collection.replace(collectionLine, editTaskField(collectionLine, "priority", "high")),
+			logText: copied.log.replace(logLine, editTaskField(logLine, "priority", "low")),
+			eid,
+		};
+	}
+
+	/** Every assertion a held tree needs after one run: nothing written, the notice standing and true. */
+	function expectHeld(
+		{ files, notes, problems }: ReturnType<typeof world>,
+		collectionText: string,
+		logText: string,
+		eid: string,
+	): void {
+		expect(files.get(COLLECTION_PATH)).toBe(collectionText);
+		expect(files.get(TODAY_LOG_PATH)).toBe(logText);
+		expect(notes.editCounts.size).toBe(0);
+		expect(problems.standing.get(eid)).toContain("Neither was changed");
+	}
+
+	it("an unpaired ticked parent stays under the tasks heading with its clashing subtask, and neither note is written", async () => {
+		// Before #1268 the parent moved under the completed-tasks heading and
+		// the subtask's `[/]` became `[x]`, while the notice said neither copy
+		// was changed.
+		const raw = [`## ${layout().tasksHeading}`, "- [x] Call the boatyard", "\t- [ ] Find the number ⏳ 2026-09-22", ""].join("\n");
+		const { collectionText, logText, eid } = clashingTree(raw, "Find the number");
+		const w = world(collectionText, logText);
+
+		await runOverCollection(w.runDeps, collectionOf());
+
+		expectHeld(w, collectionText, logText, eid);
+	});
+
+	it("a paired parent ticked in the collection, standing above its clashing subtask, waits: its tick reaches the log, and nothing moves", async () => {
+		// The run meets the parent's pairing before the subtask's. A clash
+		// found only when the walk reaches the subtask would come after the
+		// parent had already moved and rewritten it.
+		const raw = [
+			`## ${layout().tasksHeading}`,
+			"- [ ] Plan the trip ⏳ 2026-09-22",
+			"\t- [ ] Book the ferry ⏳ 2026-09-22",
+			"",
+		].join("\n");
+		const tree = clashingTree(raw, "Book the ferry");
+		const collectionText = tree.collectionText.replace("- [/] Plan the trip", "- [x] Plan the trip");
+		expect(collectionText).not.toBe(tree.collectionText);
+		const w = world(collectionText, tree.logText);
+
+		await runOverCollection(w.runDeps, collectionOf());
+
+		const finalCollection = w.files.get(COLLECTION_PATH)!;
+		expect(finalCollection).not.toContain(layout().completedTasksHeading);
+		expect(lineContaining(finalCollection, "Book the ferry")).toBe(lineContaining(collectionText, "Book the ferry"));
+		expect(lineContaining(w.files.get(TODAY_LOG_PATH)!, "Book the ferry")).toBe(lineContaining(tree.logText, "Book the ferry"));
+		expect(parsed(lineContaining(finalCollection, "Plan the trip")).meaning).toBe("done");
+		expect(parsed(lineContaining(w.files.get(TODAY_LOG_PATH)!, "Plan the trip")).meaning).toBe("done");
+		expect(w.problems.standing.get(tree.eid)).toContain("Neither was changed");
+	});
+
+	it("a ticked recurring parent above a clashing subtask gets no next round and does not move", async () => {
+		// If the round step asked only the top line whether it is held, it would
+		// write the round dated 2026-09-29 and move the ticked line with the
+		// subtask rewritten to `[x]`.
+		const raw = [
+			`## ${layout().tasksHeading}`,
+			"- [ ] Water the ferns 🔁 every week ⏳ 2026-09-22",
+			"\t- [ ] Fill the can ⏳ 2026-09-22",
+			"",
+		].join("\n");
+		const tree = clashingTree(raw, "Fill the can");
+		const collectionText = tree.collectionText.replace("- [/] Water the ferns", "- [x] Water the ferns");
+		expect(collectionText).not.toBe(tree.collectionText);
+		const w = world(collectionText, tree.logText);
+
+		await runOverCollection(w.runDeps, collectionOf());
+
+		const finalCollection = w.files.get(COLLECTION_PATH)!;
+		expect(finalCollection).not.toContain("2026-09-29");
+		expect(finalCollection).not.toContain(layout().completedTasksHeading);
+		expect(lineContaining(finalCollection, "Fill the can")).toBe(lineContaining(collectionText, "Fill the can"));
+		expect(lineContaining(w.files.get(TODAY_LOG_PATH)!, "Fill the can")).toBe(lineContaining(tree.logText, "Fill the can"));
+		expect(w.problems.standing.get(tree.eid)).toContain("Neither was changed");
+	});
+
+	it("an unpaired ticked parent waits while a grandchild clashes", async () => {
+		// If only the line directly under the parent were asked, the grandchild
+		// would be carried along and rewritten.
+		const raw = [
+			`## ${layout().tasksHeading}`,
+			"- [x] Call the boatyard",
+			"\t- [ ] Look up the harbour",
+			"\t\t- [ ] Find the number ⏳ 2026-09-22",
+			"",
+		].join("\n");
+		const { collectionText, logText, eid } = clashingTree(raw, "Find the number");
+		const w = world(collectionText, logText);
+
+		await runOverCollection(w.runDeps, collectionOf());
+
+		expectHeld(w, collectionText, logText, eid);
+	});
+
+	it("an unpaired ticked parent waits while its subtask clashes against an earlier day's log", async () => {
+		// The subtask was copied into yesterday's log and ticked there with new
+		// words, while its collection copy lost its date and got other words.
+		const yesterday = new Date(2026, 8, 21, 9, 0);
+		const raw = [`## ${layout().tasksHeading}`, "- [x] Call the boatyard", "\t- [ ] Water the plants ⏳ 2026-09-21", ""].join("\n");
+		const copied = copyIn(raw, dailyLogFrame(layout()), yesterday, layout(), "Errands");
+		const oldPath = dailyLogPath(yesterday, layout());
+		const oldLine = lineContaining(copied.log, "Water the plants");
+		const oldLogText = copied.log.replace(oldLine, editTaskField(oldLine, "checkbox", "x").replace("Water the plants", "Water the ferns"));
+		const collectionLine = lineContaining(copied.collection, "Water the plants");
+		const collectionText = copied.collection.replace(
+			collectionLine,
+			editTaskField(collectionLine, "scheduled", null).replace("Water the plants", "Water the roses"),
+		);
+		const eid = readMarker(parsed(collectionLine))!.eid;
+		const todayLog = dailyLogFrame(layout());
+		const w = world(collectionText, todayLog, [[oldPath, oldLogText]]);
+
+		await runOverCollection(w.runDeps, collectionOf());
+
+		expect(w.files.get(COLLECTION_PATH)).toBe(collectionText);
+		expect(w.files.get(oldPath)).toBe(oldLogText);
+		expect(w.files.get(TODAY_LOG_PATH)).toBe(todayLog);
+		expect(w.notes.editCounts.size).toBe(0);
+		expect(w.problems.standing.get(eid)).toContain(oldPath);
+		expect(w.problems.standing.get(eid)).toContain("Neither was changed");
+	});
+
+	it("once the clash is resolved by hand, the next run moves the parent and its subtree, and the subtask's log copy follows", async () => {
+		// If the wait outlived the clash — a held set kept from an earlier run,
+		// or a refusal that ignored the held set's contents — the parent would
+		// still stand under the tasks heading after the second run.
+		const raw = [`## ${layout().tasksHeading}`, "- [x] Call the boatyard", "\t- [ ] Find the number ⏳ 2026-09-22", ""].join("\n");
+		const { collectionText, logText, eid } = clashingTree(raw, "Find the number");
+		const w = world(collectionText, logText);
+		await runOverCollection(w.runDeps, collectionOf());
+		expect(w.problems.standing.has(eid)).toBe(true);
+
+		// The person edits the log's copy to match the collection's priority.
+		const logLine = lineContaining(logText, "Find the number");
+		w.files.set(TODAY_LOG_PATH, logText.replace(logLine, editTaskField(logLine, "priority", "high")));
+
+		await runOverCollection(w.runDeps, collectionOf());
+
+		const lines = w.files.get(COLLECTION_PATH)!.split("\n");
+		const completedAt = lines.indexOf(`## ${layout().completedTasksHeading}`);
+		expect(completedAt).toBeGreaterThanOrEqual(0);
+		expect(lines.findIndex((line) => line.includes("Call the boatyard"))).toBeGreaterThan(completedAt);
+		expect(parsed(lineContaining(w.files.get(COLLECTION_PATH)!, "Find the number")).meaning).toBe("done");
+		expect(parsed(lineContaining(w.files.get(TODAY_LOG_PATH)!, "Find the number")).meaning).toBe("done");
+		expect(w.problems.standing.has(eid)).toBe(false);
+	});
+});

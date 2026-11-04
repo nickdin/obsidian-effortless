@@ -78,6 +78,23 @@ describe("collectionIn", () => {
 		}
 	});
 
+	// Meeting notes may write its logbook lines as `- [i] [[meeting]]`:
+	// beside the tasks heading the range keeps them out, and nested under it the
+	// `i` does, since only the space is an open task. That Obsidian lists a
+	// `- [i]` line as a task carrying `i` is driven:
+	// `docs/acceptance-shots/issue-1269-logbook-line-start-drive.txt`.
+	it.each([
+		["beside the tasks heading", 2],
+		["nested under the tasks heading", 3],
+	])("leaves the open-task count as it was for a - [i] logbook line %s", (_case, logbookLevel) => {
+		const headings = [heading("Tasks", 2, 0), heading("Logbook", logbookLevel, 2)];
+		const without = collectionIn("Work/Roof.md", cacheOf(headings, [task(" ", 1)]), layout());
+		const withLine = collectionIn("Work/Roof.md", cacheOf(headings, [task(" ", 1), task("i", 3)]), layout());
+
+		expect(without?.openTasks).toBe(1);
+		expect(withLine?.openTasks).toBe(1);
+	});
+
 	it("ignores capitals", () => {
 		const cache = cacheOf([heading("TASKS", 2, 0)]);
 

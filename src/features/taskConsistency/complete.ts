@@ -56,6 +56,15 @@
  * the parent, their own checkboxes set to the parent's meaning if still
  * open".
  *
+ * **Waiting for a held pairing.** A caller may name the pairings its run is
+ * holding untouched — one whose two copies clash, or that clashes against an
+ * earlier day's log — and a subtree carrying one of them, at any depth, is
+ * left exactly where it is, `moved: false`. The cascade would otherwise move
+ * the held line and rewrite its checkbox while the clash notice says neither
+ * copy was changed; the finished task waits until the clash is resolved,
+ * the author's answer on issue
+ * #1268, 2026-11-04.
+ *
  * **The two headings.** The completed-tasks heading is written, directly
  * beneath the tasks heading and its tasks, the moment this module needs it and
  * finds none — the same placement `collections.ts`'s own `headingLine` comment
@@ -99,6 +108,22 @@ export function clippedEnd(match: HeadingMatch, other: HeadingMatch | null): num
 		return other.heading;
 	}
 	return match.end;
+}
+
+/**
+ * Whether the tasks heading is written within the completed-tasks heading's
+ * range, or is the very same heading. Then every line under it is also under
+ * the completed-tasks heading, and a finished line moved to the end of that
+ * range lands back in the tasks range, so a pass that reads the tasks range to find lines to move
+ * would find the same line again on every reading. The round step
+ * and the pass over unpaired lines both read nothing then.
+ */
+export function tasksInsideCompleted(tasksMatch: HeadingMatch, completedMatch: HeadingMatch | null): boolean {
+	return (
+		completedMatch !== null &&
+		completedMatch.heading <= tasksMatch.heading &&
+		tasksMatch.heading < completedMatch.end
+	);
 }
 
 /**
@@ -244,6 +269,30 @@ export function subtreeEndFrom(
 	return end;
 }
 
+/**
+ * Whether any task line in `[rootIndex, subtreeEnd)` — the top line included —
+ * carries a pairing marker whose eid is in `held`: a pairing the run is holding
+ * untouched, whose clash notice promises neither copy was changed. The move
+ * refuses such a subtree, so the finished task waits under the tasks heading
+ * until the clash is resolved; a caller that picks a line before
+ * moving it asks this same question first.
+ */
+export function subtreeHoldsHeld(
+	lines: readonly string[],
+	rootIndex: number,
+	subtreeEnd: number,
+	held: ReadonlySet<string>,
+): boolean {
+	if (held.size === 0) return false;
+	for (let index = rootIndex; index < subtreeEnd; index += 1) {
+		const task = parseTaskLine(lines[index]);
+		if (task === null) continue;
+		const marker = readMarker(task);
+		if (marker !== null && held.has(marker.eid)) return true;
+	}
+	return false;
+}
+
 /** Where the two headings and their searchable ranges sit, handed to whatever finds the line to move. */
 interface MoveContext {
 	readonly lines: readonly string[];
@@ -261,10 +310,12 @@ interface MoveContext {
  * subtree, under the completed-tasks heading — the guard, the cascade, the
  * waiting-for-the-parent rule and the two headings' rules all live here, once,
  * so a call keyed to a pairing and a call keyed to a line cannot drift apart.
+ * A subtree holding an eid in `held` is not moved ({@link subtreeHoldsHeld}).
  */
 function moveFinishedTask(
 	collectionText: string,
 	layout: VaultLayout,
+	held: ReadonlySet<string>,
 	findRoot: (context: MoveContext) => number,
 ): CompleteResult {
 	const unchanged: CompleteResult = { collection: collectionText, moved: false };
@@ -296,6 +347,7 @@ function moveFinishedTask(
 	if (hasEnclosingTask(lines, rootIndex, rootIndent, tasksMatch.start)) return unchanged;
 
 	const subtreeEnd = subtreeEndFrom(lines, rootIndex, rootIndent, tasksEnd);
+	if (subtreeHoldsHeld(lines, rootIndex, subtreeEnd, held)) return unchanged;
 
 	const movedLines = lines.slice(rootIndex, subtreeEnd).map((line, offset) => {
 		if (offset === 0) return line;
@@ -359,16 +411,19 @@ function moveFinishedTask(
 /**
  * Moves the task `eid` names, with its subtree, from `collectionText`'s tasks
  * heading to its completed-tasks heading — see the module comment for the
- * guard, the cascade and the two headings' own rules.
+ * guard, the cascade and the two headings' own rules. `held` names the
+ * pairings the run is holding untouched; a subtree carrying one stays put.
  */
 export function completeInCollection(
 	collectionText: string,
 	eid: string,
 	layout: VaultLayout,
+	held: ReadonlySet<string> = new Set(),
 ): CompleteResult {
 	return moveFinishedTask(
 		collectionText,
 		layout,
+		held,
 		({ lines, tasksMatch, tasksEnd, completedMatch, completedSearchEnd }) => {
 			if (
 				completedMatch !== null &&
@@ -387,14 +442,16 @@ export function completeInCollection(
  * under the tasks heading — a line anywhere else, past the end, or negative
  * leaves the text as it is. The line's pairing marker is never read, so a
  * finished task that carries none moves exactly as a paired one does; the
- * guard (the line's own meaning is `done` or `cancelled`) is the same.
+ * guard (the line's own meaning is `done` or `cancelled`) is the same, and so
+ * is `held`.
  */
 export function completeLineInCollection(
 	collectionText: string,
 	lineIndex: number,
 	layout: VaultLayout,
+	held: ReadonlySet<string> = new Set(),
 ): CompleteResult {
-	return moveFinishedTask(collectionText, layout, ({ tasksMatch, tasksEnd }) =>
+	return moveFinishedTask(collectionText, layout, held, ({ tasksMatch, tasksEnd }) =>
 		Number.isInteger(lineIndex) && lineIndex >= tasksMatch.start && lineIndex < tasksEnd
 			? lineIndex
 			: -1,

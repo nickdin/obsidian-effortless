@@ -316,6 +316,22 @@ export function withWrittenLine(text: string, identity: string): string {
 }
 
 /**
+ * `text` with the written line as its frontmatter's last line: for a note that
+ * names no meeting, so has no identity line to sit beside — the unplanned
+ * meeting's. The
+ * fingerprint is of the body alone, so where in the frontmatter the line sits
+ * changes nothing a reader sees. A text with no frontmatter is returned as it is.
+ */
+export function withWrittenLineLast(text: string): string {
+	const fingerprint = bodyFingerprintWritten(text);
+	const lines = text.split("\n");
+	const end = frontmatterEnd(lines);
+	if (fingerprint === null || end < 0) return text;
+	lines.splice(end, 0, writtenLine(fingerprint));
+	return lines.join("\n");
+}
+
+/**
  * `after`, the text of an edit the run made to `before`, with the written line
  * made to fingerprint the edited body when `before` still held exactly the body
  * its line recorded.

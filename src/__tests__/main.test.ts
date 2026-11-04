@@ -1061,6 +1061,9 @@ describe("the features main.ts registers", () => {
 			"effortless:checkbox-cycling:shipped-task-flow:backward",
 			"effortless:checkbox-cycling:shipped-annotations:forward",
 			"effortless:checkbox-cycling:shipped-annotations:backward",
+			// Meeting notes' unplanned meeting, offered while the
+			// feature stands by too, since that is where a meeting is recorded.
+			"effortless:unplanned-meeting",
 			// Migration's two commands, registered before
 			// Task consistency's, which comes next.
 			"effortless:file-task",
@@ -1077,6 +1080,7 @@ describe("the features main.ts registers", () => {
 			"Task flow: cycle backward",
 			"Annotations: cycle forward",
 			"Annotations: cycle backward",
+			"New note for an unplanned meeting",
 			"Migration: file this task into a collection",
 			"Migration: go to this task in its collection",
 			"Mark as processed",
@@ -1104,6 +1108,7 @@ describe("the features main.ts registers", () => {
 		// cycling was switched off.
 		expect(plugin.commands.map((each) => each.id)).toEqual([
 			"effortless:create-todays-log",
+			"effortless:unplanned-meeting",
 			"effortless:file-task",
 			"effortless:jump-filed",
 			"effortless:mark-as-processed",
@@ -1154,6 +1159,7 @@ describe("the features main.ts registers", () => {
 		// still started, since it is a different feature.
 		expect(plugin.commands.map((each) => each.id)).toEqual([
 			"effortless:create-todays-log",
+			"effortless:unplanned-meeting",
 			"effortless:file-task",
 			"effortless:jump-filed",
 			"effortless:mark-as-processed",

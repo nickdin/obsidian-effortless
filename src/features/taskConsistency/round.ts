@@ -48,6 +48,7 @@
 
 import { localDateKey } from "../../core/meetingName";
 import { daysBetween, nextRepeatDate, readRepeatRule, shiftDate } from "../../core/repeatRule";
+import type { RepeatRule } from "../../core/repeatRule";
 import type { VaultLayout } from "../../core/settings";
 import { editTaskField, parseTaskLine, relevantDate, setComment, uncapturedRepeat } from "../../core/taskLine";
 import type { TaskLine } from "../../core/taskLine";
@@ -60,6 +61,8 @@ import {
 	joinLines,
 	splitLines,
 	subtreeEndFrom,
+	subtreeHoldsHeld,
+	tasksInsideCompleted,
 } from "./complete";
 import { readMarker } from "./marker";
 import { FEATURE_ID } from "./types";
@@ -155,19 +158,35 @@ function freshRound(block: readonly string[], top: TaskLine, next: string, delta
 	return out;
 }
 
+/**
+ * The rule text after `task`'s 🔁 sign, readable or not, or null when the line
+ * carries no sign. A sign whose rule the reader did not take
+ * (`🔁 varje måndag`, a bare `🔁`) is an unreadable rule, not a line with no
+ * rule, so its report stands like any other.
+ */
+function repeatSignOf(task: TaskLine): string | null {
+	return task.repeat ?? uncapturedRepeat(task);
+}
+
+/**
+ * `task`'s repeat rule when it has one the reader can take, or null. A line
+ * with one is this step's to finish, dated or not; a line whose rule cannot be
+ * read is a task that does not repeat, finished as any task is.
+ */
+export function readableRuleOf(task: TaskLine): RepeatRule | null {
+	return task.repeat === null ? null : readRepeatRule(task.repeat);
+}
+
 /** Every recurring top-of-subtree task line under the tasks heading, with what the step does about it. */
 function scan(text: string, todayKey: string, layout: VaultLayout, skipEids: ReadonlySet<string>): Candidate[] {
 	const tasksMatch = findHeading(text, layout.tasksHeading);
 	if (tasksMatch === null) return [];
 	const completedMatch = findHeading(text, layout.completedTasksHeading);
-	// A tasks heading inside the completed-tasks section, or the very same
-	// heading, has every line under it also under the completed-tasks heading,
-	// and a finished line moved to the end of that section lands back in the
-	// tasks range: it would be read and rounded again on every run. A
-	// line already under the completed-tasks heading is never read.
-	if (completedMatch !== null && completedMatch.heading <= tasksMatch.heading && tasksMatch.heading < completedMatch.end) {
-		return [];
-	}
+	// A tasks heading within the completed-tasks heading's range: a finished
+	// line this step moved would land back where it reads, and be rounded again
+	// on every run. A line already under the completed-tasks heading is
+	// never read.
+	if (tasksInsideCompleted(tasksMatch, completedMatch)) return [];
 	const tasksEnd = clippedEnd(tasksMatch, completedMatch);
 	const nowhereToGo = layout.completedTasksHeading.trim() === "";
 	const { lines } = splitLines(text);
@@ -176,17 +195,14 @@ function scan(text: string, todayKey: string, layout: VaultLayout, skipEids: Rea
 	for (let index = tasksMatch.start; index < tasksEnd; index += 1) {
 		const task = parseTaskLine(lines[index]);
 		if (task === null) continue;
-		// A sign whose rule the reader did not take (`🔁 varje måndag`, a bare
-		// `🔁`) is an unreadable rule, not a line with no rule, so its report
-		// stands like any other.
-		const ruleText = task.repeat ?? uncapturedRepeat(task);
+		const ruleText = repeatSignOf(task);
 		if (ruleText === null) continue;
 		const marker = readMarker(task);
 		const held = marker !== null && skipEids.has(marker.eid);
 		const indent = indentOf(lines[index]).length;
 		if (hasEnclosingTask(lines, index, indent, tasksMatch.start)) continue;
 
-		const rule = task.repeat === null ? null : readRepeatRule(task.repeat);
+		const rule = readableRuleOf(task);
 		const left = (reason: LeftAloneReason): Candidate => ({
 			index,
 			rule: ruleText,
@@ -203,7 +219,12 @@ function scan(text: string, todayKey: string, layout: VaultLayout, skipEids: Rea
 			candidates.push(left("no-date"));
 			continue;
 		}
-		if (held || (task.meaning !== "done" && task.meaning !== "cancelled")) {
+		// A subtree holding a held pairing waits with it: rounding the line
+		// would move the subtree and rewrite the held line. `held`
+		// itself still names the line's own pairing only, which sorts its
+		// faults above.
+		const subtreeHeld = subtreeHoldsHeld(lines, index, subtreeEndFrom(lines, index, indent, tasksEnd), skipEids);
+		if (held || subtreeHeld || (task.meaning !== "done" && task.meaning !== "cancelled")) {
 			candidates.push({ index, rule: ruleText, readable: true, verdict: { kind: "nothing" }, held });
 			continue;
 		}
@@ -235,7 +256,13 @@ function scan(text: string, todayKey: string, layout: VaultLayout, skipEids: Rea
  * where the finished line stood whichever side of the tasks heading the
  * completed-tasks heading is on.
  */
-function writeRound(text: string, index: number, fresh: readonly string[], layout: VaultLayout): string {
+function writeRound(
+	text: string,
+	index: number,
+	fresh: readonly string[],
+	layout: VaultLayout,
+	skipEids: ReadonlySet<string>,
+): string {
 	const { lines, endings } = splitLines(text);
 	const indent = indentOf(lines[index]).length;
 	const tasksMatch = findHeading(text, layout.tasksHeading);
@@ -245,7 +272,7 @@ function writeRound(text: string, index: number, fresh: readonly string[], layou
 
 	lines.splice(index, 0, ...fresh);
 	endings.splice(index, 0, ...endings.slice(index, end));
-	const moved = completeLineInCollection(joinLines(lines, endings), index + fresh.length, layout);
+	const moved = completeLineInCollection(joinLines(lines, endings), index + fresh.length, layout, skipEids);
 	if (!moved.moved) {
 		throw new Error(`the round step could not move the finished line at ${index} under the completed-tasks heading`);
 	}
@@ -257,7 +284,8 @@ function writeRound(text: string, index: number, fresh: readonly string[], layou
  * `skipEids` names pairings the run is holding untouched — one whose two
  * copies clash, or that clashes against an earlier day's log — so their line
  * is not looked at, rounded or moved, and the "Neither was changed" the
- * problem report promises stays true.
+ * problem report promises stays true. A finished recurring line whose
+ * subtree holds one is not rounded or moved either.
  */
 export function roundStep(
 	collectionText: string,
@@ -293,7 +321,7 @@ export function roundStep(
 				layout.completedTasksHeading.trim() === "" && candidates.some((candidate) => candidate.readable);
 			return { collection: text, rounds, leftAlone, held: heldFaults, repeatsWithBlankHeading };
 		}
-		const written = writeRound(text, next.index, next.verdict.fresh, layout);
+		const written = writeRound(text, next.index, next.verdict.fresh, layout, skipEids);
 		if (written === text) throw new Error("the round step wrote a round and the text did not change");
 		text = written;
 		rounds += 1;
